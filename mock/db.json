@@ -1,7 +1,0 @@
-{
-  "reservations": [
-    {"id": 1, "customerName": "Dupont", "hotelName": "Hôtel A", "arrivalDate": "2026-02-10"},
-    {"id": 2, "customerName": "Martin", "hotelName": "Hôtel B", "arrivalDate": "2026-02-12"},
-    {"id": 3, "customerName": "Durand", "hotelName": "Hôtel C", "arrivalDate": "2026-02-15"}
-  ]
-}

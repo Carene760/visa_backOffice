@@ -1,13 +1,13 @@
-package com.teamLead.reservationVoiture;
+package com.teamlead;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ReservationVoitureApplication {
+public class VisaApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(ReservationVoitureApplication.class, args);
+		SpringApplication.run(VisaApplication.class, args);
 	}
 
 }
