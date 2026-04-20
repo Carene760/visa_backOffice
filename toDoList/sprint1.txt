@@ -1,0 +1,133 @@
+Sprint 1 :
+
+TEAM LEAD : 3371
+DEV1 : XXXX
+DEV2 : XXXX
+
+DEV1 :
+	Branche 1 : sprint1/1/database_and_form
+
+		init.sql
+			- [Entites : demandeur, demande, passeport, visa] Verifier la structure SQL pour autoriser l'insertion d'une nouvelle demande sans erreur de contrainte.
+			- [Entites : demandeur, demande, passeport, visa, passeport_visa] Conserver les relations principales entre les entites.
+			- [Entites : demande, visa] Verifier que la demande reste le point de depart du processus du visa transformable.
+			- [Entites : statut_demande, type_demande, type_motif, type_document] Preparer les tables de reference necessaires au formulaire et au statut du sprint 1.
+			- [Entites : toutes tables de migration sprint1] Corriger les erreurs de syntaxe eventuelles avant integration.
+
+			Files a concerner :
+				- visa_backOffice/scripts/migration/sprint1/init.sql
+				- visa_backOffice/src/main/resources/application.properties si un parametre de configuration est necessaire
+
+		JSP / formulaire
+			- [Entites : demandeur, passeport, visa, piece_a_fournir] Realiser le formulaire a partir du modele TFe_3_FORMULAIRE_VISA_TRANSFORMABLE_EN_LONG_SEJOUR.pdf.
+			- [Entites : demandeur, passeport, visa, piece_a_fournir] Organiser le formulaire en sections distinctes :
+				- Informations du demandeur
+				- Informations du passeport
+				- Informations du visa transformable
+				- Documents a fournir
+				- Resume avant enregistrement
+			- [Entites : demandeur] Afficher les champs obligatoires : nom, numero de telephone, adresse a Madagascar, date de naissance.
+			- [Entites : demandeur] Afficher les champs complementaires : prenom, nom de naissance, email, nationalite, lieu de naissance, situation matrimoniale.
+			- [Entites : passeport] Afficher les champs : numero, date de delivrance, date d'expiration.
+			- [Entites : visa] Afficher les champs : reference, date d'entree, lieu d'entree, date d'expiration.
+			- [Entites : piece_a_fournir, type_document] Prevoir une case a cocher pour chaque document a fournir.
+			- [Entites : piece_a_fournir] Ne pas prevoir d'upload pour ce sprint.
+			- [Entites : formulaire complet] Prevoir un affichage simple, lisible et proche du document papier.
+
+			Files a concerner :
+				- visa_backOffice/src/main/webapp/WEB-INF/jsp/*.jsp
+				- visa_backOffice/src/main/java/com/teamlead/Controller/*.java
+				- visa_backOffice/src/main/java/com/teamlead/Model/*.java
+
+		Documents a fournir
+			- [Entites : type_demande, type_motif, type_document] Definir les documents obligatoires pour la nouvelle demande.
+				- Type de demande pris en charge dans ce sprint : 'travailleur' et 'investisseur'.
+                D'apres mes recherches :
+				- Documents communs obligatoires : passeport valide, formulaire, photos, billet.
+				- Documents specifiques travailleurs : contrat de travail, statuts employeur, attestation autorisation d'emploi, casier judiciaire, attestation changement residence.
+				- Documents specifiques investisseurs : statuts societe, carte statistique, NIF, declaration d'existence, RCS, attestation bancaire, casier judiciaire, acte de naissance, attestation changement residence.
+                Documents à fournir :
+                    . Un passeport original signé ayant une validité de plus de 6 mois après la date de retour de Madagascar
+                    . Le formulaire à remplir
+                    . Deux photos identiques et récentes-format 4,5cm x 3,5cm
+                    . Copie du billet d’avion ALLER avec détails de vols (N° de réservation, N° et horaires de vols) et billet retour obligatoirement à UN MOIS après la date de départ ou billet d’avion avec la mention « OPEN » sur le coupon
+
+                    – Droit de visa (en espèces)
+                    – 105 € pour une entrée à Madagascar
+
+                    – Documents supplémentaires selon les motifs du long-séjour ==>
+
+                    – Travailleurs expatriés :
+                    Contrat de travail délivré par l’employeur à Madagascar
+                    Statuts de la Société-Employeur ou un extrait des Statuts
+                    Attestation de dépôt de la demande d’autorisation d’emploi
+                    (délivrée par Le Ministère du Travail et des Lois Sociales – EDBM à Madagascar)
+                    Extrait de Casier judiciaire Bulletin N°3 (moins de 3 mois- original)
+                    Attestation de changement de résidence (mairie en France).
+
+                    – Investisseurs :
+                    Statuts de la Société (sauf pour Entreprise Individuelle)
+                    Carte Statistique (Carte d’Identification d’Etablissement)
+                    Attestation d’Immatriculation (Numéro d’Identification Fiscal)
+                    Déclaration d’Existence (pour les sociétés)
+                    Extrait Registre du Commerce et des Sociétés
+                    Attestation Bancaire de la Société délivrée par une Banque à Madagascar
+                    Extrait de Casier judiciaire Bulletin N°3 (moins de 3 mois- original)
+                    Acte de naissance
+                    Attestation de changement de résidence (mairie en France).
+
+			- [Entites : type_document] Definir les documents non obligatoires.
+			- [Entites : type_document, piece_a_fournir] Afficher clairement les documents obligatoires dans le formulaire.
+			- [Entites : piece_a_fournir, demande] Autoriser l'enregistrement avec un document non obligatoire manquant.
+			- [Entites : piece_a_fournir, demande] Bloquer l'enregistrement si un document obligatoire manque.
+			- [Entites : piece_a_fournir] Prevoir des champs booleens/cases a cocher pour signaler la presence de chaque piece.
+			- [Entites : piece_a_fournir] Garder la logique d'affichage simple, sans upload.
+
+			Files a concerner :
+				- visa_backOffice/src/main/java/com/teamlead/Model/*.java
+				- visa_backOffice/src/main/java/com/teamlead/Service/*.java
+				- visa_backOffice/src/main/webapp/WEB-INF/jsp/*.jsp
+
+		Correction / base
+			- [Entites : toutes tables de migration sprint1] Corriger les erreurs de syntaxe eventuelles dans le script SQL.
+			- [Entites : demandeur, demande, passeport, visa, piece_a_fournir] Conserver un schema simple et coherent pour la suite du projet.
+			- [Entites : statut_demande, type_demande, type_motif, type_document] Verifier que les inserts de reference sont compatibles avec la structure de la base.
+
+DEV2 :
+	Branche 2 : sprint1/2/request_validation_and_status
+
+		Controller / workflow
+			- [Entites : demandeur, demande, passeport, visa, piece_a_fournir] Creer le controleur pour la nouvelle demande si le traitement n'existe pas encore.
+			- [Entites : demande, piece_a_fournir] Gerer le submit du formulaire et la validation avant insertion.
+			- [Entites : demande] Rediriger l'utilisateur vers le detail du dossier ou vers un message de succes apres sauvegarde.
+			- [Entites : demandeur, demande, piece_a_fournir] Afficher les erreurs de validation de facon claire.
+			Files a concerner :
+				- visa_backOffice/src/main/java/com/teamlead/Controller/*.java
+				- visa_backOffice/src/main/webapp/WEB-INF/jsp/*.jsp
+
+		Service / validation
+			- [Entites : demande, piece_a_fournir] Creer la logique de validation d'une nouvelle demande.
+			- [Entites : demandeur] Verifier les champs obligatoires avant insertion.
+			- [Entites : piece_a_fournir, type_document] Verifier la presence des documents obligatoires avant enregistrement.
+			- [Entites : piece_a_fournir, demande] Autoriser l'enregistrement si seules les pieces non obligatoires sont absentes.
+			- [Entites : piece_a_fournir, demande] Refuser l'enregistrement si une piece obligatoire est absente.
+			- [Entites : demande, statut_demande] S'assurer que le statut initial reste 'dossier cree' tant que le dossier n'est pas complet.
+			- [Entites : demande, piece_a_fournir] Permettre la modification d'une demande deja enregistree pour completer les pieces manquantes.
+			Files a concerner :
+				- visa_backOffice/src/main/java/com/teamlead/Service/*.java
+				- visa_backOffice/src/main/java/com/teamlead/Repository/*.java
+				- visa_backOffice/src/main/java/com/teamlead/Model/*.java
+
+		Statut de la demande
+			- [Entites : statut_demande, demande] Creer le statut initial 'dossier cree'.
+			- [Entites : statut_demande, demande, piece_a_fournir] Autoriser le changement de statut uniquement si tous les documents obligatoires sont presents.
+			- [Entites : statut_demande, demande] Maintenir le statut 'dossier cree' lorsque le dossier est incomplet mais enregistrable.
+			- [Entites : statut_demande, demande, piece_a_fournir] Bloquer le passage a un autre statut si une piece obligatoire manque encore.
+			- [Entites : statut_demande, historique_statut_demande] Prevoir une evolution simple du workflow pour la suite du projet.
+
+Notes :
+	- Ce sprint couvre uniquement l'insertion d'une nouvelle demande.
+	- Pas de piece jointe / upload dans ce sprint.
+	- Pas de denormalisation pour le moment.
+	- Le formulaire doit rester simple mais conforme au modele papier.
+	- Les cas de duplicata, perte, transfert et renouvellement seront traites plus tard.
