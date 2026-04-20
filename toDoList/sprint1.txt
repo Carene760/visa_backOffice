@@ -39,7 +39,7 @@ DEV1 :
 				- visa_backOffice/src/main/java/com/teamlead/Controller/*.java
 				- visa_backOffice/src/main/java/com/teamlead/Model/*.java
 
-		Documents a fournir
+		Documents a fournir (Tsy tadidiko tsara le notenenin'i Ramose )
 			- [Entites : type_demande, type_motif, type_document] Definir les documents obligatoires pour la nouvelle demande.
 				- Type de demande pris en charge dans ce sprint : 'travailleur' et 'investisseur'.
                 D'apres mes recherches :
