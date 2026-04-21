@@ -93,6 +93,7 @@ CREATE TABLE visa (
   lieu_entree VARCHAR(150),
   date_expiration DATE NOT NULL,
   id_demande INT NOT NULL,
+  id_demandeur INT NOT NULL,
   date_emission TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_demandeur) REFERENCES demandeur(id) ON DELETE CASCADE,

@@ -42,6 +42,10 @@ public class Visa {
     @JoinColumn(name = "id_demande", nullable = false, foreignKey = @ForeignKey(name = "visa_id_demande_fkey"))
     private Demande demande;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_demandeur", nullable = false, foreignKey = @ForeignKey(name = "visa_id_demandeur_fkey"))
+    private Demandeur demandeur;
+
     @Column(name = "date_emission")
     private LocalDateTime dateEmission;
 
