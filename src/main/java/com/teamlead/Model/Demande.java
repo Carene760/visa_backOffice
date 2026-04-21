@@ -34,11 +34,11 @@ public class Demande {
     private LocalDateTime dateDemande;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_type_motif", nullable = false, foreignKey = @ForeignKey(name = "demande_id_type_motif_fkey"))
+    @JoinColumn(name = "id_type_motif", foreignKey = @ForeignKey(name = "demande_id_type_motif_fkey"))
     private TypeMotif typeMotif;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_type_demande", nullable = false, foreignKey = @ForeignKey(name = "demande_id_type_demande_fkey"))
+    @JoinColumn(name = "id_type_demande", foreignKey = @ForeignKey(name = "demande_id_type_demande_fkey"))
     private TypeDemande typeDemande;
 
     @Column(name = "date_traitement")
@@ -48,5 +48,7 @@ public class Demande {
     private LocalDate dateExpirationDemande;
 
     @Column(name = "date_modification")
+    private LocalDateTime dateModification;
+}
     private LocalDateTime dateModification;
 }
