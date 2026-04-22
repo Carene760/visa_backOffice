@@ -70,22 +70,29 @@ CREATE TABLE type_document (
   FOREIGN KEY (id_type_motif) REFERENCES type_motif(id) ON DELETE CASCADE
 );
 
+
+--update table Visa ajout de id_visa_transformable :
 CREATE TABLE demande ( -- demande visa transformable
   id SERIAL PRIMARY KEY,
   id_demandeur INT NOT NULL,
-  date_demande TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  id_visa_transformable INT NOT NULL,
   id_type_motif INT NOT NULL,
   id_type_demande INT NOT NULL,
+  id_statut_demande INT NOT NULL,
+  date_demande TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   date_traitement TIMESTAMP,
   date_expiration_demande DATE, -- Délai de 30 jours pour transformer en carte résident
   date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_demandeur) REFERENCES demandeur(id) ON DELETE CASCADE,
+  FOREIGN KEY (id_visa_transformable) REFERENCES visa_transformable(id),
   FOREIGN KEY (id_type_motif) REFERENCES type_motif(id),
-  FOREIGN KEY (id_type_demande) REFERENCES type_demande(id)
+  FOREIGN KEY (id_type_demande) REFERENCES type_demande(id),
+   FOREIGN KEY (id_statut_demande) REFERENCES statut_demande(id)
 );
 
 CREATE INDEX idx_demande_demandeur ON demande(id_demandeur);
 
+--update table Visa ajout de id_passeport car un visa peut avoir plusieurs passeport :
 CREATE TABLE visa (
   id SERIAL PRIMARY KEY,
   reference VARCHAR(100) NOT NULL UNIQUE,
@@ -93,13 +100,14 @@ CREATE TABLE visa (
   lieu_entree VARCHAR(150),
   date_expiration DATE NOT NULL,
   id_demande INT NOT NULL,
-  id_demandeur INT NOT NULL,
+  id_passeport INT NOT NULL,
   date_emission TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (id_demandeur) REFERENCES demandeur(id) ON DELETE CASCADE,
   FOREIGN KEY (id_demande) REFERENCES demande(id) ON DELETE CASCADE,
+  FOREIGN KEY (id_passeport) REFERENCES passeport(id), 
   CHECK (date_expiration >= date_entree)
 );
+
 
 CREATE INDEX idx_reference ON visa(reference);
 
@@ -108,13 +116,14 @@ CREATE TABLE motif_transfert (  -- "perte", "expiration", "renouvellement"...
     libelle VARCHAR(100)
 );
 
+
 CREATE TABLE passeport_visa (
   id SERIAL PRIMARY KEY,
   id_passeport INT NOT NULL,
   id_visa INT NOT NULL,
   date_association DATE NOT NULL,
   date_transfert DATE, -- NULL si actuellement actif, rempli si transféré
-  id_motif_transfert INT NOT NULL,
+  id_motif_transfert INT,
   date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_passeport) REFERENCES passeport(id) ON DELETE CASCADE,
   FOREIGN KEY (id_visa) REFERENCES visa(id) ON DELETE CASCADE,
@@ -167,3 +176,42 @@ CREATE TABLE journal_activite (
   FOREIGN KEY (id_demandeur) REFERENCES demandeur(id),
   FOREIGN KEY (id_type_evenement) REFERENCES type_evenement(id)
 );
+
+
+--- MODIFICATION ORNELLA
+
+---ajout de table manquant 
+CREATE TABLE visa_transformable (
+  id SERIAL PRIMARY KEY,
+  id_demandeur INT NOT NULL,
+  id_passeport INT NOT NULL,
+  reference VARCHAR(100) NOT NULL,
+  date_entree DATE NOT NULL,
+  lieu_entree VARCHAR(150),
+  date_expiration DATE NOT NULL,
+  date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_demandeur) REFERENCES demandeur(id),
+  FOREIGN KEY (id_passeport) REFERENCES passeport(id)
+);
+
+-- conception à prevoir meme si
+CREATE TABLE carte_resident (
+  id SERIAL PRIMARY KEY,
+  reference VARCHAR(100) NOT NULL UNIQUE,
+  date_entree DATE NOT NULL,
+  lieu_entree VARCHAR(150),
+  date_expiration DATE,
+  id_demande INT NOT NULL,
+  id_passeport INT NOT NULL, 
+  date_emission TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_demande) REFERENCES demande(id),
+  FOREIGN KEY (id_passeport) REFERENCES passeport(id),
+  CHECK (date_expiration >= date_entree)
+);
+
+
+
+
+
+
