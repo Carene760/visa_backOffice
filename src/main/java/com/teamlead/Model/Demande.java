@@ -31,10 +31,6 @@ public class Demande {
     private Demandeur demandeur;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_visa_transformable", nullable = false, foreignKey = @ForeignKey(name = "demande_id_visa_transformable_fkey"))
-    private VisaTransformable visaTransformable;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_type_motif", nullable = false, foreignKey = @ForeignKey(name = "demande_id_type_motif_fkey"))
     private TypeMotif typeMotif;
 

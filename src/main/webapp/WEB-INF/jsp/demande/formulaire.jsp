@@ -325,9 +325,9 @@
                 </div>
             </div>
 
-            <!-- Section 3: Informations Visa Transformable -->
+            <!-- Section 3: Informations Visa -->
             <div class="form-section">
-                <h2>Informations Visa Transformable</h2>
+                <h2>Informations Visa</h2>
                 <div class="form-rows">
                     <div class="form-group">
                         <label for="visa_reference" class="required">Référence du Visa</label>
@@ -344,6 +344,10 @@
                     <div class="form-group">
                         <label for="visa_date_expiration" class="required">Date d'Expiration</label>
                         <input type="date" id="visa_date_expiration" name="visa_date_expiration" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Type de visa (conception)</label>
+                        <input type="text" value="TRANSFORMABLE" readonly>
                     </div>
                 </div>
             </div>

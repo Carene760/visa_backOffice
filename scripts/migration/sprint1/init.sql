@@ -61,6 +61,11 @@ CREATE TABLE type_demande ( -- "NOUVELLE", "DUPLICATA"
     libelle VARCHAR(50) UNIQUE
 );
 
+CREATE TABLE type_visa ( -- "TRANSFORMABLE", "LONG_SEJOUR_TRAVAILLEUR", "LONG_SEJOUR_INVESTISSEUR"
+  id SERIAL PRIMARY KEY,
+  libelle VARCHAR(80) NOT NULL UNIQUE
+);
+
 CREATE TABLE type_document (
   id SERIAL PRIMARY KEY,
   code VARCHAR(100),
@@ -70,37 +75,17 @@ CREATE TABLE type_document (
   FOREIGN KEY (id_type_motif) REFERENCES type_motif(id) ON DELETE CASCADE
 );
 
-
---- MODIFICATION ORNELLA
----ajout de table manquant 
-CREATE TABLE visa_transformable (
+CREATE TABLE demande ( -- demande de visa
   id SERIAL PRIMARY KEY,
   id_demandeur INT NOT NULL,
-  id_passeport INT NOT NULL,
-  reference VARCHAR(100) NOT NULL,
-  date_entree DATE NOT NULL,
-  lieu_entree VARCHAR(150),
-  date_expiration DATE NOT NULL,
-  date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (id_demandeur) REFERENCES demandeur(id),
-  FOREIGN KEY (id_passeport) REFERENCES passeport(id)
-);
-
-
---update table Visa ajout de id_visa_transformable :
-CREATE TABLE demande ( -- demande visa transformable
-  id SERIAL PRIMARY KEY,
-  id_demandeur INT NOT NULL,
-  id_visa_transformable INT NOT NULL,
   id_type_motif INT NOT NULL,
   id_type_demande INT NOT NULL,
   id_statut_demande INT NOT NULL,
   date_demande TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   date_traitement TIMESTAMP,
-  date_expiration_demande DATE, -- Délai de 30 jours pour transformer en carte résident
+  date_expiration_demande DATE,
   date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_demandeur) REFERENCES demandeur(id) ON DELETE CASCADE,
-  FOREIGN KEY (id_visa_transformable) REFERENCES visa_transformable(id),
   FOREIGN KEY (id_type_motif) REFERENCES type_motif(id),
   FOREIGN KEY (id_type_demande) REFERENCES type_demande(id),
    FOREIGN KEY (id_statut_demande) REFERENCES statut_demande(id)
@@ -108,24 +93,26 @@ CREATE TABLE demande ( -- demande visa transformable
 
 CREATE INDEX idx_demande_demandeur ON demande(id_demandeur);
 
---update table Visa ajout de id_passeport car un visa peut avoir plusieurs passeport :
+-- table visa generalisee: un seul stockage pour transformable et long sejour
+-- rattachee a la demande, puis liee au passeport via passeport_visa
 CREATE TABLE visa (
   id SERIAL PRIMARY KEY,
   reference VARCHAR(100) NOT NULL UNIQUE,
+  id_type_visa INT NOT NULL,
   date_entree DATE NOT NULL,
   lieu_entree VARCHAR(150),
   date_expiration DATE NOT NULL,
   id_demande INT NOT NULL,
-  id_passeport INT NOT NULL,
   date_emission TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_type_visa) REFERENCES type_visa(id),
   FOREIGN KEY (id_demande) REFERENCES demande(id) ON DELETE CASCADE,
-  FOREIGN KEY (id_passeport) REFERENCES passeport(id), 
   CHECK (date_expiration >= date_entree)
 );
 
 
 CREATE INDEX idx_reference ON visa(reference);
+CREATE INDEX idx_visa_type ON visa(id_type_visa);
 
 CREATE TABLE motif_transfert (  -- "perte", "expiration", "renouvellement"...
     id SERIAL PRIMARY KEY,
