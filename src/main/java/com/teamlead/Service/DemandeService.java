@@ -1,6 +1,7 @@
 package com.teamlead.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,15 +12,11 @@ import com.teamlead.DTO.DemandeCreationDTO;
 import com.teamlead.DTO.ValidationErrorDTO;
 import com.teamlead.Model.Demande;
 import com.teamlead.Model.Demandeur;
-import com.teamlead.Model.Nationalite;
 import com.teamlead.Model.PieceAFournir;
-import com.teamlead.Model.SituationMatrimoniale;
-import com.teamlead.Model.TypeDemande;
-import com.teamlead.Model.TypeDocument;
-import com.teamlead.Model.TypeMotif;
 import com.teamlead.Repository.DemandeRepository;
 import com.teamlead.Repository.DemandeurRepository;
 import com.teamlead.Repository.PieceAFournirRepository;
+import com.teamlead.Repository.TypeDocumentRepository;
 
 @Service
 public class DemandeService {
@@ -34,20 +31,33 @@ public class DemandeService {
     private PieceAFournirRepository pieceAFournirRepository;
 
     @Autowired
+    private TypeDocumentRepository typeDocumentRepository;
+
+    @Autowired
     private DemandeValidationService demandeValidationService;
 
     @Autowired
     private DemandeStatusService demandeStatusService;
 
     /**
-     * Crée une nouvelle demande avec le demandeur et les documents associés
+     * Crée une nouvelle demande avec validation complète
+     * 
+     * Étapes:
+     * 1. Valide tous les champs obligatoires du demandeur
+     * 2. Valide les documents obligatoires
+     * 3. Crée le demandeur en base
+     * 4. Crée la demande en base
+     * 5. Crée les pièces à fournir
+     * 6. Initialise le statut "ENREGISTREE"
+     * 
+     * Retourne: ValidationErrorDTO avec succès et ID de la demande créée
      */
     @Transactional
     public ValidationErrorDTO creerNouvelleDemande(DemandeCreationDTO demandeDTO) {
         ValidationErrorDTO validation = new ValidationErrorDTO(true, "Demande créée avec succès");
 
         try {
-            // Créer ou récupérer le demandeur
+            // 1. Créer l'objet demandeur
             Demandeur demandeur = new Demandeur();
             demandeur.setNom(demandeDTO.getNom());
             demandeur.setPrenom(demandeDTO.getPrenom());
@@ -59,7 +69,7 @@ public class DemandeService {
             demandeur.setAdresseMadagascar(demandeDTO.getAdresseMadagascar());
             demandeur.setDateCreation(LocalDateTime.now());
 
-            // Valider le demandeur
+            // 2. Valider le demandeur
             ValidationErrorDTO validationDemandeur = demandeValidationService.validerDemandeur(demandeur);
             if (!validationDemandeur.isSuccess()) {
                 validation.setSuccess(false);
@@ -68,115 +78,49 @@ public class DemandeService {
                 return validation;
             }
 
-            // Sauvegarder le demandeur
+            // 3. Valider les documents obligatoires fournis
+            ValidationErrorDTO validationDocuments = demandeValidationService
+                    .validerDocumentsObligatoires(demandeDTO.getPiecesPresentes());
+            if (!validationDocuments.isSuccess()) {
+                validation.setSuccess(false);
+                validation.setMessage("Documents obligatoires manquants");
+                validation.setErrors(validationDocuments.getErrors());
+                return validation;
+            }
+
+            // 4. Sauvegarder le demandeur
             demandeur = demandeurRepository.save(demandeur);
 
-            // Créer la demande
+            // 5. Créer et sauvegarder la demande
             Demande demande = new Demande();
             demande.setDemandeur(demandeur);
             demande.setDateDemande(LocalDateTime.now());
             demande = demandeRepository.save(demande);
 
-            // Initialiser le statut 'dossier cree'
+            // 6. Créer les pièces à fournir
+            if (demandeDTO.getPiecesPresentes() != null && !demandeDTO.getPiecesPresentes().isEmpty()) {
+                for (Integer idDocument : demandeDTO.getPiecesPresentes()) {
+                    PieceAFournir piece = new PieceAFournir();
+                    piece.setDemande(demande);
+                    piece.setTypeDocument(typeDocumentRepository.findById(idDocument).orElse(null));
+                    piece.setPresent(true);
+                    piece.setDateDepot(LocalDateTime.now());
+                    piece.setDateModification(LocalDateTime.now());
+                    pieceAFournirRepository.save(piece);
+                }
+            }
+
+            // 7. Initialiser le statut "ENREGISTREE"
             demandeStatusService.initializeDemandeStatus(demande);
 
-            // Créer les pièces à fournir si fournies
-            if (demandeDTO.getPiecesPresentes() != null) {
-                for (Integer idDocument : demandeDTO.getPiecesPresentes()) {
-                    PieceAFournir piece = new PieceAFournir();
-                    piece.setDemande(demande);
-                    piece.setPresent(true);
-                    piece.setDateDepot(LocalDateTime.now());
-                    piece.setDateModification(LocalDateTime.now());
-                    pieceAFournirRepository.save(piece);
-                }
-            }
-
             validation.setDemandeId(demande.getId());
             return validation;
 
         } catch (Exception e) {
             validation.setSuccess(false);
-            validation.setMessage("Erreur lors de la création de la demande: " + e.getMessage());
+            validation.setMessage("Erreur serveur lors de l'enregistrement: " + e.getMessage());
+            validation.addError(e.getClass().getName() + ": " + e.getMessage());
             return validation;
         }
-    }
-
-    /**
-     * Modifie une demande existante pour ajouter/modifier les documents
-     */
-    @Transactional
-    public ValidationErrorDTO modifierDemande(Integer demandeId, DemandeCreationDTO demandeDTO) {
-        ValidationErrorDTO validation = new ValidationErrorDTO(true, "Demande modifiée avec succès");
-
-        try {
-            Demande demande = demandeRepository.findById(demandeId).orElse(null);
-            if (demande == null) {
-                validation.setSuccess(false);
-                validation.setMessage("Demande introuvable");
-                return validation;
-            }
-
-            Demandeur demandeur = demande.getDemandeur();
-
-            // Mettre à jour les champs du demandeur
-            if (demandeDTO.getNom() != null) {
-                demandeur.setNom(demandeDTO.getNom());
-            }
-            if (demandeDTO.getPrenom() != null) {
-                demandeur.setPrenom(demandeDTO.getPrenom());
-            }
-            if (demandeDTO.getEmail() != null) {
-                demandeur.setEmail(demandeDTO.getEmail());
-            }
-            if (demandeDTO.getTelephone() != null) {
-                demandeur.setTelephone(demandeDTO.getTelephone());
-            }
-
-            demandeur.setDateModification(LocalDateTime.now());
-            demandeurRepository.save(demandeur);
-
-            // Mettre à jour les pièces à fournir
-            if (demandeDTO.getPiecesPresentes() != null) {
-                // Supprimer les anciennes pièces
-                List<PieceAFournir> anciennes = pieceAFournirRepository.findByDemandeId(demandeId);
-                pieceAFournirRepository.deleteAll(anciennes);
-
-                // Ajouter les nouvelles pièces
-                for (Integer idDocument : demandeDTO.getPiecesPresentes()) {
-                    PieceAFournir piece = new PieceAFournir();
-                    piece.setDemande(demande);
-                    piece.setPresent(true);
-                    piece.setDateDepot(LocalDateTime.now());
-                    piece.setDateModification(LocalDateTime.now());
-                    pieceAFournirRepository.save(piece);
-                }
-            }
-
-            demande.setDateModification(LocalDateTime.now());
-            demandeRepository.save(demande);
-
-            validation.setDemandeId(demande.getId());
-            return validation;
-
-        } catch (Exception e) {
-            validation.setSuccess(false);
-            validation.setMessage("Erreur lors de la modification de la demande: " + e.getMessage());
-            return validation;
-        }
-    }
-
-    /**
-     * Récupère une demande par son ID
-     */
-    public Demande getDemandeById(Integer demandeId) {
-        return demandeRepository.findById(demandeId).orElse(null);
-    }
-
-    /**
-     * Vérifie si une demande peut passer au statut suivant
-     */
-    public boolean peutPasserAuStatutSuivant(Integer demandeId) {
-        return demandeStatusService.isDossierComplet(demandeId);
     }
 }

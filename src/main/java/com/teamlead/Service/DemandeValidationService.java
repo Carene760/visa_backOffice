@@ -8,26 +8,29 @@ import org.springframework.stereotype.Service;
 
 import com.teamlead.DTO.ValidationErrorDTO;
 import com.teamlead.Model.Demandeur;
-import com.teamlead.Model.PieceAFournir;
 import com.teamlead.Model.TypeDocument;
-import com.teamlead.Repository.DemandeurRepository;
-import com.teamlead.Repository.PieceAFournirRepository;
+import com.teamlead.Repository.TypeDocumentRepository;
 
 @Service
 public class DemandeValidationService {
 
     @Autowired
-    private DemandeurRepository demandeurRepository;
-
-    @Autowired
-    private PieceAFournirRepository pieceAFournirRepository;
+    private TypeDocumentRepository typeDocumentRepository;
 
     /**
      * Valide les champs obligatoires du demandeur
+     * 
+     * Champs obligatoires:
+     * - nom
+     * - telephone (format: [0-9+\-\s()]+)
+     * - adresse_madagascar
+     * - date_naissance
+     * 
+     * Champs optionnels validés sur format:
+     * - email (si fourni)
      */
     public ValidationErrorDTO validerDemandeur(Demandeur demandeur) {
         ValidationErrorDTO result = new ValidationErrorDTO(true, "Validation réussie");
-
         List<String> errors = new ArrayList<>();
 
         // Champs obligatoires
@@ -47,12 +50,13 @@ public class DemandeValidationService {
             errors.add("La date de naissance est obligatoire");
         }
 
-        // Validations de format et cohérence
+        // Validations de format
         if (demandeur.getTelephone() != null && !demandeur.getTelephone().matches("[0-9+\\-\\s()]+")) {
-            errors.add("Le format du numéro de téléphone est invalide");
+            errors.add("Le format du numéro de téléphone est invalide (accepte: chiffres, +, -, espaces, parenthèses)");
         }
 
-        if (demandeur.getEmail() != null && !demandeur.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+        if (demandeur.getEmail() != null && !demandeur.getEmail().trim().isEmpty() 
+            && !demandeur.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
             errors.add("Le format de l'email est invalide");
         }
 
@@ -66,20 +70,24 @@ public class DemandeValidationService {
     }
 
     /**
-     * Valide la présence des documents obligatoires pour une demande
+     * Valide que tous les documents obligatoires sont présents
+     * 
+     * Paramètre: piecesPresentes - Liste des IDs des documents fournis
+     * 
+     * Vérifie que pour chaque document obligatoire (type_document.obligatoire = true),
+     * son ID est présent dans la liste des piecesPresentes
      */
-    public ValidationErrorDTO validerDocumentsObligatoires(Integer demandeId) {
+    public ValidationErrorDTO validerDocumentsObligatoires(List<Integer> piecesPresentes) {
         ValidationErrorDTO result = new ValidationErrorDTO(true, "Tous les documents obligatoires sont présents");
-
-        List<PieceAFournir> piecesObligatoires = pieceAFournirRepository
-                .findByDemandeIdAndTypeDocumentObligatoireTrue(demandeId);
-
         List<String> errors = new ArrayList<>();
 
-        for (PieceAFournir piece : piecesObligatoires) {
-            if (!piece.getPresent()) {
-                TypeDocument typeDoc = piece.getTypeDocument();
-                errors.add("Le document obligatoire '" + typeDoc.getLibelle() + "' est manquant");
+        // Récupérer tous les documents obligatoires
+        List<TypeDocument> documentsObligatoires = typeDocumentRepository.findByObligatoireTrue();
+
+        // Vérifier que chaque document obligatoire est dans piecesPresentes
+        for (TypeDocument doc : documentsObligatoires) {
+            if (piecesPresentes == null || !piecesPresentes.contains(doc.getId())) {
+                errors.add("Document obligatoire manquant: " + doc.getLibelle());
             }
         }
 
@@ -90,53 +98,5 @@ public class DemandeValidationService {
         }
 
         return result;
-    }
-
-    /**
-     * Valide si l'enregistrement est autorisé (vérifie les champs obligatoires)
-     * Les documents non obligatoires manquants n'empêchent pas l'enregistrement
-     */
-    public ValidationErrorDTO validerEnregistrement(Demandeur demandeur, Integer demandeId) {
-        ValidationErrorDTO result = new ValidationErrorDTO(true, "L'enregistrement est autorisé");
-
-        List<String> errors = new ArrayList<>();
-
-        // Vérifier les champs du demandeur
-        ValidationErrorDTO validationDemandeur = validerDemandeur(demandeur);
-        if (!validationDemandeur.isSuccess()) {
-            errors.addAll(validationDemandeur.getErrors());
-        }
-
-        // Si des erreurs, refuser l'enregistrement
-        if (!errors.isEmpty()) {
-            result.setSuccess(false);
-            result.setMessage("L'enregistrement ne peut pas être effectué");
-            result.setErrors(errors);
-        }
-
-        return result;
-    }
-
-    /**
-     * Vérifie si tous les documents obligatoires sont présents
-     */
-    public boolean toutsDocumentsObligatoiresPresents(Integer demandeId) {
-        List<PieceAFournir> piecesObligatoires = pieceAFournirRepository
-                .findByDemandeIdAndTypeDocumentObligatoireTrue(demandeId);
-
-        for (PieceAFournir piece : piecesObligatoires) {
-            if (!piece.getPresent()) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Vérifie le nombre de documents obligatoires présents
-     */
-    public Long compterDocumentsObligatoiresPresents(Integer demandeId) {
-        return pieceAFournirRepository.countByDemandeIdAndTypeDocumentObligatoireTrueAndPresentTrue(demandeId);
     }
 }

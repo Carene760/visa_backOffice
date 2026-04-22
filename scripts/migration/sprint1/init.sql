@@ -167,3 +167,82 @@ CREATE TABLE journal_activite (
   FOREIGN KEY (id_demandeur) REFERENCES demandeur(id),
   FOREIGN KEY (id_type_evenement) REFERENCES type_evenement(id)
 );
+
+-- ========================================
+-- DONNEES DE REFERENCE - DEV1
+-- ========================================
+
+-- Statuts des demandes
+INSERT INTO statut_demande (libelle) VALUES
+('ENREGISTREE'),
+('EN_TRAITEMENT'),
+('APPROUVEE'),
+('REJETEE'),
+('TRANSFEREE');
+
+-- Types de motifs
+INSERT INTO type_motif (libelle) VALUES
+('TRAVAILLEUR'),
+('INVESTISSEUR'),
+('ETUDIANT'),
+('REUNIFICATION_FAMILIALE'),
+('AFFAIRES');
+
+-- Types de demandes
+INSERT INTO type_demande (libelle) VALUES
+('NOUVELLE'),
+('DUPLICATA'),
+('TRANSFERT'),
+('RENOUVELLEMENT');
+
+-- Types d'événements
+INSERT INTO type_evenement (code) VALUES
+('CREATION_DEMANDE'),
+('VALIDATION_DOCUMENTS'),
+('TRANSFERT_VISA'),
+('MODIFICATION_DEMANDE'),
+('CHANGEMENT_STATUT'),
+('REJET_DEMANDE');
+
+-- Motifs de transfert
+INSERT INTO motif_transfert (libelle) VALUES
+('PERTE'),
+('VOL'),
+('EXPIRATION'),
+('DETERIORATION'),
+('RENOUVELLEMENT'),
+('CHANGEMENT_MOTIF');
+
+-- Situations matrimoniales
+INSERT INTO situation_matrimoniale (libelle) VALUES
+('CELIBATAIRE'),
+('MARIE'),
+('DIVORCE'),
+('VEUF'),
+('PACS');
+
+-- Nationalités (exemples)
+INSERT INTO nationalite (libelle) VALUES
+('MADAGASCAR'),
+('FRANCE'),
+('BELGIQUE'),
+('SUISSE'),
+('CANADA'),
+('REUNION'),
+('MAURICE'),
+('SEYCHELLES');
+
+-- Documents obligatoires et optionnels
+-- Pour TOUS les motifs (id_type_motif = NULL)
+INSERT INTO type_document (code, libelle, obligatoire, id_type_motif) VALUES
+('PASSEPORT', 'Passeport valide', TRUE, NULL),
+('CERTIFICAT_MEDICAL', 'Certificat médical', TRUE, NULL),
+('ASSURANCE_MALADIE', 'Assurance maladie voyage', TRUE, NULL),
+('JUSTIFICATIF_RESSOURCES', 'Justificatif de ressources financières', TRUE, NULL),
+('RESERVATION_HOTEL', 'Réservation hôtel ou justificatif d''hébergement', TRUE, NULL),
+('BILLET_RETOUR', 'Billet d''avion retour confirmé', TRUE, NULL),
+('DECLARATION_BAGAGES', 'Déclaration de bagages (optionnel)', FALSE, NULL),
+('CORRESPONDANCE_AMIS', 'Correspondance avec amis/famille (optionnel)', FALSE, NULL);
+
+-- Documents spécifiques par motif (à remplir selon les besoins)
+-- À ajouter dans les sprints futurs
