@@ -71,6 +71,22 @@ CREATE TABLE type_document (
 );
 
 
+--- MODIFICATION ORNELLA
+---ajout de table manquant 
+CREATE TABLE visa_transformable (
+  id SERIAL PRIMARY KEY,
+  id_demandeur INT NOT NULL,
+  id_passeport INT NOT NULL,
+  reference VARCHAR(100) NOT NULL,
+  date_entree DATE NOT NULL,
+  lieu_entree VARCHAR(150),
+  date_expiration DATE NOT NULL,
+  date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_demandeur) REFERENCES demandeur(id),
+  FOREIGN KEY (id_passeport) REFERENCES passeport(id)
+);
+
+
 --update table Visa ajout de id_visa_transformable :
 CREATE TABLE demande ( -- demande visa transformable
   id SERIAL PRIMARY KEY,
@@ -177,22 +193,6 @@ CREATE TABLE journal_activite (
   FOREIGN KEY (id_type_evenement) REFERENCES type_evenement(id)
 );
 
-
---- MODIFICATION ORNELLA
-
----ajout de table manquant 
-CREATE TABLE visa_transformable (
-  id SERIAL PRIMARY KEY,
-  id_demandeur INT NOT NULL,
-  id_passeport INT NOT NULL,
-  reference VARCHAR(100) NOT NULL,
-  date_entree DATE NOT NULL,
-  lieu_entree VARCHAR(150),
-  date_expiration DATE NOT NULL,
-  date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (id_demandeur) REFERENCES demandeur(id),
-  FOREIGN KEY (id_passeport) REFERENCES passeport(id)
-);
 
 -- conception à prevoir meme si
 CREATE TABLE carte_resident (

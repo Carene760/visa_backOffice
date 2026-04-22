@@ -10,6 +10,7 @@ import com.teamlead.Model.TypeDocument;
 @Repository
 public interface TypeDocumentRepository extends JpaRepository<TypeDocument, Integer> {
     List<TypeDocument> findByObligatoire(Boolean obligatoire);
-    List<TypeDocument> findByIdTypeMotifIsNull();
-    List<TypeDocument> findByIdTypeMotif(Integer idTypeMotif);
+    List<TypeDocument> findByTypeMotifIsNull();
+    List<TypeDocument> findByTypeMotif_Id(Integer idTypeMotif);
+    List<TypeDocument> findByTypeMotifIsNotNull();
 }

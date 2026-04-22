@@ -17,11 +17,15 @@ public class TypeDocumentService {
     }
 
     public List<TypeDocument> findDocumentsCommuns() {
-        return typeDocumentRepository.findByIdTypeMotifIsNull();
+        return typeDocumentRepository.findByTypeMotifIsNull();
     }
 
     public List<TypeDocument> findDocumentsByTypeMotif(Integer idTypeMotif) {
-        return typeDocumentRepository.findByIdTypeMotif(idTypeMotif);
+        return typeDocumentRepository.findByTypeMotif_Id(idTypeMotif);
+    }
+
+    public List<TypeDocument> findDocumentsSpecifiques() {
+        return typeDocumentRepository.findByTypeMotifIsNotNull();
     }
 
     public List<TypeDocument> findObligatoires() {
