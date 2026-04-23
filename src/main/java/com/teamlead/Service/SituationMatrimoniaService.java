@@ -10,13 +10,13 @@ import java.util.List;
 public class SituationMatrimoniaService {
 
     @Autowired
-    private SituationMatrimoniaRepository situationMatrimoniaRepository;
+    private SituationMatrimoniaRepository situationMatrimonialeRepository;
 
     public List<SituationMatrimoniale> findAll() {
-        return situationMatrimoniaRepository.findAll();
+        return situationMatrimonialeRepository.findAll();
     }
 
     public SituationMatrimoniale findById(Integer id) {
-        return situationMatrimoniaRepository.findById(id).orElse(null);
+        return situationMatrimonialeRepository.findById(id).orElse(null);
     }
 }
