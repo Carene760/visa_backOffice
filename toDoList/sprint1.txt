@@ -1,8 +1,8 @@
 Sprint 1 :
 
 TEAM LEAD : 3371
-DEV1 : XXXX
-DEV2 : XXXX
+DEV1 : 3273
+DEV2 : 3265
 
 DEV1 :
 	Branche 1 : sprint1/1/database_and_form

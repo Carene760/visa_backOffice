@@ -29,6 +29,10 @@ public class Visa {
     @Column(nullable = false, unique = true, length = 100)
     private String reference;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_type_visa", nullable = false, foreignKey = @ForeignKey(name = "visa_id_type_visa_fkey"))
+    private TypeVisa typeVisa;
+
     @Column(name = "date_entree", nullable = false)
     private LocalDate dateEntree;
 

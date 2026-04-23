@@ -30,9 +30,6 @@ public class Demande {
     @JoinColumn(name = "id_demandeur", nullable = false, foreignKey = @ForeignKey(name = "demande_id_demandeur_fkey"))
     private Demandeur demandeur;
 
-    @Column(name = "date_demande")
-    private LocalDateTime dateDemande;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_type_motif", nullable = false, foreignKey = @ForeignKey(name = "demande_id_type_motif_fkey"))
     private TypeMotif typeMotif;
@@ -40,6 +37,13 @@ public class Demande {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_type_demande", nullable = false, foreignKey = @ForeignKey(name = "demande_id_type_demande_fkey"))
     private TypeDemande typeDemande;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_statut_demande", nullable = false, foreignKey = @ForeignKey(name = "demande_id_statut_demande_fkey"))
+    private StatutDemande statutDemande;
+
+    @Column(name = "date_demande")
+    private LocalDateTime dateDemande;
 
     @Column(name = "date_traitement")
     private LocalDateTime dateTraitement;

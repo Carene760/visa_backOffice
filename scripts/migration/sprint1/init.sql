@@ -61,6 +61,11 @@ CREATE TABLE type_demande ( -- "NOUVELLE", "DUPLICATA"
     libelle VARCHAR(50) UNIQUE
 );
 
+CREATE TABLE type_visa ( -- "TRANSFORMABLE", "LONG_SEJOUR_TRAVAILLEUR", "LONG_SEJOUR_INVESTISSEUR"
+  id SERIAL PRIMARY KEY,
+  libelle VARCHAR(80) NOT NULL UNIQUE
+);
+
 CREATE TABLE type_document (
   id SERIAL PRIMARY KEY,
   code VARCHAR(100),
@@ -70,25 +75,30 @@ CREATE TABLE type_document (
   FOREIGN KEY (id_type_motif) REFERENCES type_motif(id) ON DELETE CASCADE
 );
 
-CREATE TABLE demande ( -- demande visa transformable
+CREATE TABLE demande ( -- demande de visa
   id SERIAL PRIMARY KEY,
   id_demandeur INT NOT NULL,
-  date_demande TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   id_type_motif INT NOT NULL,
   id_type_demande INT NOT NULL,
+  id_statut_demande INT NOT NULL,
+  date_demande TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   date_traitement TIMESTAMP,
-  date_expiration_demande DATE, -- Délai de 30 jours pour transformer en carte résident
+  date_expiration_demande DATE,
   date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_demandeur) REFERENCES demandeur(id) ON DELETE CASCADE,
   FOREIGN KEY (id_type_motif) REFERENCES type_motif(id),
-  FOREIGN KEY (id_type_demande) REFERENCES type_demande(id)
+  FOREIGN KEY (id_type_demande) REFERENCES type_demande(id),
+   FOREIGN KEY (id_statut_demande) REFERENCES statut_demande(id)
 );
 
 CREATE INDEX idx_demande_demandeur ON demande(id_demandeur);
 
+-- table visa generalisee: un seul stockage pour transformable et long sejour
+-- rattachee a la demande, puis liee au passeport via passeport_visa
 CREATE TABLE visa (
   id SERIAL PRIMARY KEY,
   reference VARCHAR(100) NOT NULL UNIQUE,
+  id_type_visa INT NOT NULL,
   date_entree DATE NOT NULL,
   lieu_entree VARCHAR(150),
   date_expiration DATE NOT NULL,
@@ -96,17 +106,20 @@ CREATE TABLE visa (
   id_demandeur INT NOT NULL,
   date_emission TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (id_demandeur) REFERENCES demandeur(id) ON DELETE CASCADE,
+  FOREIGN KEY (id_type_visa) REFERENCES type_visa(id),
   FOREIGN KEY (id_demande) REFERENCES demande(id) ON DELETE CASCADE,
   CHECK (date_expiration >= date_entree)
 );
 
+
 CREATE INDEX idx_reference ON visa(reference);
+CREATE INDEX idx_visa_type ON visa(id_type_visa);
 
 CREATE TABLE motif_transfert (  -- "perte", "expiration", "renouvellement"...
     id SERIAL PRIMARY KEY,
     libelle VARCHAR(100)
 );
+
 
 CREATE TABLE passeport_visa (
   id SERIAL PRIMARY KEY,
@@ -114,7 +127,7 @@ CREATE TABLE passeport_visa (
   id_visa INT NOT NULL,
   date_association DATE NOT NULL,
   date_transfert DATE, -- NULL si actuellement actif, rempli si transféré
-  id_motif_transfert INT NOT NULL,
+  id_motif_transfert INT,
   date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_passeport) REFERENCES passeport(id) ON DELETE CASCADE,
   FOREIGN KEY (id_visa) REFERENCES visa(id) ON DELETE CASCADE,
@@ -167,3 +180,26 @@ CREATE TABLE journal_activite (
   FOREIGN KEY (id_demandeur) REFERENCES demandeur(id),
   FOREIGN KEY (id_type_evenement) REFERENCES type_evenement(id)
 );
+
+
+-- conception à prevoir meme si
+CREATE TABLE carte_resident (
+  id SERIAL PRIMARY KEY,
+  reference VARCHAR(100) NOT NULL UNIQUE,
+  date_entree DATE NOT NULL,
+  lieu_entree VARCHAR(150),
+  date_expiration DATE,
+  id_demande INT NOT NULL,
+  id_passeport INT NOT NULL, 
+  date_emission TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_demande) REFERENCES demande(id),
+  FOREIGN KEY (id_passeport) REFERENCES passeport(id),
+  CHECK (date_expiration >= date_entree)
+);
+
+
+
+
+
+
