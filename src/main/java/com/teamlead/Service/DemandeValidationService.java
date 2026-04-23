@@ -72,20 +72,40 @@ public class DemandeValidationService {
     /**
      * Valide que tous les documents obligatoires sont présents
      * 
-     * Paramètre: piecesPresentes - Liste des IDs des documents fournis
+     * Un document est obligatoire si:
+     * - obligatoire = true ET
+     * - (id_type_motif IS NULL OU id_type_motif = idTypeMotif sélectionné)
      * 
-     * Vérifie que pour chaque document obligatoire (type_document.obligatoire = true),
-     * son ID est présent dans la liste des piecesPresentes
+     * Paramètres:
+     * - piecesPresentes: Liste des IDs des documents fournis
+     * - idTypeMotif: ID du type de motif sélectionné
+     * 
+     * Vérifie que tous les documents obligatoires correspondant au type de motif
+     * sont présents dans la liste des piecesPresentes
      */
-    public ValidationErrorDTO validerDocumentsObligatoires(List<Integer> piecesPresentes) {
+    public ValidationErrorDTO validerDocumentsObligatoires(List<Integer> piecesPresentes, Integer idTypeMotif) {
         ValidationErrorDTO result = new ValidationErrorDTO(true, "Tous les documents obligatoires sont présents");
         List<String> errors = new ArrayList<>();
 
-        // Récupérer tous les documents obligatoires
-        List<TypeDocument> documentsObligatoires = typeDocumentRepository.findByObligatoireTrue();
+        // Récupérer tous les documents obligatoires communs (type_motif IS NULL)
+        List<TypeDocument> documentsObligatoiresCommuns = typeDocumentRepository.findByObligatoireTrue().stream()
+                .filter(doc -> doc.getTypeMotif() == null)
+                .toList();
+        // Récupérer les documents obligatoires spécifiques au type de motif sélectionné
+        List<TypeDocument> documentsObligatoiresSpecifiques = new ArrayList<>();
+        if (idTypeMotif != null) {
+            documentsObligatoiresSpecifiques = typeDocumentRepository.findByTypeMotif_Id(idTypeMotif).stream()
+                    .filter(doc -> doc.getObligatoire() != null && doc.getObligatoire().equals(Boolean.TRUE))
+                    .toList();
+        }
+
+        // Combiner les deux listes
+        List<TypeDocument> tousLesDocumentsObligatoires = new ArrayList<>();
+        tousLesDocumentsObligatoires.addAll(documentsObligatoiresCommuns);
+        tousLesDocumentsObligatoires.addAll(documentsObligatoiresSpecifiques);
 
         // Vérifier que chaque document obligatoire est dans piecesPresentes
-        for (TypeDocument doc : documentsObligatoires) {
+        for (TypeDocument doc : tousLesDocumentsObligatoires) {
             if (piecesPresentes == null || !piecesPresentes.contains(doc.getId())) {
                 errors.add("Document obligatoire manquant: " + doc.getLibelle());
             }

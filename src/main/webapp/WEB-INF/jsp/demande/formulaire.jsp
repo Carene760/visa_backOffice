@@ -240,37 +240,52 @@
     <div class="container">
         <h1>Demande de Visa Transformable en Long Sejour</h1>
 
-        <form>
+        <!-- Affichage des erreurs de validation -->
+        <c:if test="${not empty erreur}">
+            <div class="error-container" style="background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; padding: 12px 20px; margin-bottom: 20px; color: #721c24;">
+                <h3 style="margin-top: 0; color: #721c24;">❌ Erreurs de validation</h3>
+                <p><strong>${erreur}</strong></p>
+                <c:if test="${not empty erreurs}">
+                    <ul style="margin: 10px 0 0 20px;">
+                        <c:forEach var="err" items="${erreurs}">
+                            <li>${err}</li>
+                        </c:forEach>
+                    </ul>
+                </c:if>
+            </div>
+        </c:if>
+
+        <form method = "post" action="/demande/creer">
             <!-- Section 1: Informations Personnelles du Demandeur -->
             <div class="form-section">
                 <h2>Informations Personnelles</h2>
                 <div class="form-rows">
                     <div class="form-group">
                         <label for="demandeur_nom" class="required">Nom</label>
-                        <input type="text" id="demandeur_nom" name="demandeur_nom" required>
+                        <input type="text" id="demandeur_nom" name="demandeur_nom" value="${demandeDTO.nom}" required>
                     </div>
                     <div class="form-group">
                         <label for="demandeur_prenom">Prénom</label>
-                        <input type="text" id="demandeur_prenom" name="demandeur_prenom">
+                        <input type="text" id="demandeur_prenom" name="demandeur_prenom" value="${demandeDTO.prenom}">
                     </div>
                     <div class="form-group">
                         <label for="demandeur_nom_naissance">Nom à la Naissance</label>
-                        <input type="text" id="demandeur_nom_naissance" name="demandeur_nom_naissance">
+                        <input type="text" id="demandeur_nom_naissance" name="demandeur_nom_naissance" value="${demandeDTO.nomNaissance}">
                     </div>
                     <div class="form-group">
                         <label for="demandeur_date_naissance" class="required">Date de Naissance</label>
-                        <input type="date" id="demandeur_date_naissance" name="demandeur_date_naissance" required>
+                        <input type="date" id="demandeur_date_naissance" name="demandeur_date_naissance" value="${demandeDTO.dateNaissance}" required>
                     </div>
                     <div class="form-group">
                         <label for="demandeur_lieu_naissance">Lieu de Naissance</label>
-                        <input type="text" id="demandeur_lieu_naissance" name="demandeur_lieu_naissance">
+                        <input type="text" id="demandeur_lieu_naissance" name="demandeur_lieu_naissance" value="${demandeDTO.lieuNaissance}">
                     </div>
                     <div class="form-group">
                         <label for="demandeur_nationalite" class="required">Nationalité</label>
                         <select id="demandeur_nationalite" name="demandeur_nationalite" required>
                             <option value="">-- Sélectionner --</option>
                             <c:forEach var="nat" items="${nationalites}">
-                                <option value="${nat.id}">${nat.libelle}</option>
+                                <option value="${nat.id}" <c:if test="${nat.id == demandeDTO.idNationalite}">selected</c:if>>${nat.libelle}</option>
                             </c:forEach>
                         </select>
                     </div>
@@ -279,7 +294,7 @@
                         <select id="demandeur_situation" name="demandeur_situation" required>
                             <option value="">-- Sélectionner --</option>
                             <c:forEach var="sit" items="${situations}">
-                                <option value="${sit.id}">${sit.libelle}</option>
+                                <option value="${sit.id}" <c:if test="${sit.id == demandeDTO.idSituationMatrimoniale}">selected</c:if>>${sit.libelle}</option>
                             </c:forEach>
                         </select>
                     </div>
@@ -287,21 +302,17 @@
                 <div class="form-rows full">
                     <div class="form-group">
                         <label for="demandeur_adresse" class="required">Adresse à Madagascar</label>
-                        <textarea id="demandeur_adresse" name="demandeur_adresse" required></textarea>
+                        <textarea id="demandeur_adresse" name="demandeur_adresse" required>${demandeDTO.adresseMadagascar}</textarea>
                     </div>
                 </div>
                 <div class="form-rows">
                     <div class="form-group">
-                        <label for="demandeur_profession">Profession</label>
-                        <input type="text" id="demandeur_profession" name="demandeur_profession">
-                    </div>
-                    <div class="form-group">
                         <label for="demandeur_email">Email</label>
-                        <input type="email" id="demandeur_email" name="demandeur_email">
+                        <input type="email" id="demandeur_email" name="demandeur_email" value="${demandeDTO.email}">
                     </div>
                     <div class="form-group">
                         <label for="demandeur_telephone" class="required">Téléphone</label>
-                        <input type="tel" id="demandeur_telephone" name="demandeur_telephone" required>
+                        <input type="tel" id="demandeur_telephone" name="demandeur_telephone" value="${demandeDTO.telephone}" required>
                     </div>
                 </div>
             </div>
@@ -312,15 +323,15 @@
                 <div class="form-rows">
                     <div class="form-group">
                         <label for="passeport_numero" class="required">Numéro de Passeport</label>
-                        <input type="text" id="passeport_numero" name="passeport_numero" required>
+                        <input type="text" id="passeport_numero" name="passeport_numero" value="${demandeDTO.numeroPasseport}" required>
                     </div>
                     <div class="form-group">
                         <label for="passeport_date_delivrance" class="required">Date de Délivrance</label>
-                        <input type="date" id="passeport_date_delivrance" name="passeport_date_delivrance" required>
+                        <input type="date" id="passeport_date_delivrance" name="passeport_date_delivrance" value="${demandeDTO.dateDelivrancePasseport}" required>
                     </div>
                     <div class="form-group">
                         <label for="passeport_date_expiration" class="required">Date d'Expiration</label>
-                        <input type="date" id="passeport_date_expiration" name="passeport_date_expiration" required>
+                        <input type="date" id="passeport_date_expiration" name="passeport_date_expiration" value="${demandeDTO.dateExpirationPasseport}" required>
                     </div>
                 </div>
             </div>
@@ -331,19 +342,19 @@
                 <div class="form-rows">
                     <div class="form-group">
                         <label for="visa_reference" class="required">Référence du Visa</label>
-                        <input type="text" id="visa_reference" name="visa_reference" required>
+                        <input type="text" id="visa_reference" name="visa_reference" value="${demandeDTO.referenceVisa}" required>
                     </div>
                     <div class="form-group">
                         <label for="visa_date_entree" class="required">Date d'Entrée</label>
-                        <input type="date" id="visa_date_entree" name="visa_date_entree" required>
+                        <input type="date" id="visa_date_entree" name="visa_date_entree" value="${demandeDTO.dateEntreeVisa}" required>
                     </div>
                     <div class="form-group">
                         <label for="visa_lieu_entree">Lieu d'Entrée</label>
-                        <input type="text" id="visa_lieu_entree" name="visa_lieu_entree">
+                        <input type="text" id="visa_lieu_entree" name="visa_lieu_entree" value="${demandeDTO.lieuEntreeVisa}">
                     </div>
                     <div class="form-group">
                         <label for="visa_date_expiration" class="required">Date d'Expiration</label>
-                        <input type="date" id="visa_date_expiration" name="visa_date_expiration" required>
+                        <input type="date" id="visa_date_expiration" name="visa_date_expiration" value="${demandeDTO.dateExpirationVisa}" required>
                     </div>
                     <div class="form-group">
                         <label>Type de visa (conception)</label>
@@ -366,7 +377,7 @@
                     <select id="type_motif" name="type_motif" required onchange="updateDocuments()">
                         <option value="">-- Sélectionner --</option>
                         <c:forEach var="motif" items="${typeMotifs}">
-                            <option value="${motif.id}">${motif.libelle}</option>
+                            <option value="${motif.id}" <c:if test="${motif.id == demandeDTO.idTypeMotif}">selected</c:if>>${motif.libelle}</option>
                         </c:forEach>
                     </select>
                 </div>
@@ -376,7 +387,7 @@
                     <select id="type_demande" name="type_demande" required>
                         <option value="">-- Sélectionner --</option>
                         <c:forEach var="type" items="${typesDemande}">
-                            <option value="${type.id}">${type.libelle}</option>
+                            <option value="${type.id}" <c:if test="${type.id == demandeDTO.idTypeDemande}">selected</c:if>>${type.libelle}</option>
                         </c:forEach>
                     </select>
                     <p class="info-note">Choisir uniquement Travailleur ou Investisseur pour le Sprint 1.</p>
@@ -440,7 +451,7 @@
 
             <!-- Form Actions -->
             <div class="form-actions">
-                <button type="button" class="btn-submit">Soumettre la Demande</button>
+                <button type="submit" class="btn-submit">Soumettre la Demande</button>
                 <button type="reset" class="btn-reset">Réinitialiser</button>
             </div>
         </form>

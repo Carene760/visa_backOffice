@@ -9,8 +9,8 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Times New Roman', serif;
+            background: radial-gradient(circle at 20% 0%, #fafaf7 0%, #f3f3ef 45%, #ecece8 100%);
             min-height: 100vh;
             padding: 20px;
             display: flex;
@@ -18,113 +18,121 @@
             justify-content: center;
         }
         .container {
-            background: white;
+            max-width: 650px;
+            background: #ffffff;
             padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            max-width: 500px;
-            width: 100%;
+            border: 1px solid #9a9a9a;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
             text-align: center;
         }
         .success-icon {
-            width: 80px;
-            height: 80px;
-            background: #28a745;
-            border-radius: 50%;
-            margin: 0 auto 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 50px;
+            font-size: 60px;
+            margin-bottom: 20px;
         }
         h1 {
-            color: #28a745;
-            margin-bottom: 15px;
-            font-size: 28px;
+            color: #2d5016;
+            margin-bottom: 30px;
+            font-size: 26px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .message {
             color: #666;
-            margin-bottom: 30px;
-            font-size: 16px;
+            margin-bottom: 25px;
+            font-size: 15px;
             line-height: 1.6;
         }
         .info-box {
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 5px;
+            background: #f0f8f0;
+            border: 1px solid #c0e0c0;
+            border-radius: 4px;
+            padding: 25px;
             margin-bottom: 30px;
-            border-left: 4px solid #28a745;
+            text-align: left;
         }
         .info-box p {
-            color: #333;
-            margin-bottom: 10px;
+            margin: 15px 0;
             font-size: 14px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
         }
         .info-box .label {
-            font-weight: bold;
-            color: #28a745;
+            font-weight: 600;
+            color: #173f70;
         }
         .info-box .value {
-            color: #333;
-            font-size: 18px;
-            margin-top: 5px;
+            color: #2d5016;
+            font-weight: 600;
+            font-size: 16px;
         }
         .form-actions {
             display: flex;
             gap: 15px;
             justify-content: center;
+            margin-top: 30px;
         }
         a, button {
             padding: 12px 30px;
             border: none;
-            border-radius: 5px;
-            font-size: 16px;
+            border-radius: 2px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            transition: all 0.3s;
+            transition: background-color 0.2s;
         }
         .btn-primary {
-            background: #667eea;
-            color: white;
+            background: #d4ce84;
+            color: #fff;
         }
         .btn-primary:hover {
-            background: #5568d3;
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            background: #173f70;
         }
         .btn-secondary {
-            background: #ecf0f1;
+            background: #e0e0e0;
             color: #333;
         }
         .btn-secondary:hover {
-            background: #bdc3c7;
+            background: #d0d0d0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="success-icon">✓</div>
-        <h1>Demande Créée avec Succès</h1>
+        <div class="success-icon">✅</div>
+        <h1>Demande Enregistrée avec Succès</h1>
 
         <div class="message">
-            <p>Votre demande de transformation de visa a été enregistrée avec succès.</p>
-            <p>Veuillez conserver votre numéro de dossier pour suivre votre demande.</p>
+            <p>Votre demande de transformation de visa a été enregistrée avec succès dans le système.</p>
+            <p>Veuillez conserver votre numéro de dossier ci-dessous pour suivre votre demande.</p>
         </div>
 
         <div class="info-box">
-            <p><span class="label">Numéro de Dossier:</span></p>
-            <p class="value">${demandeId}</p>
+            <p>
+                <span class="label">Numéro de Dossier:</span>
+                <span class="value">${demandeId}</span>
+            </p>
+            <p>
+                <span class="label">Statut:</span>
+                <span class="value">DOSSIER_CREE</span>
+            </p>
+            <p>
+                <span class="label">Date d'Enregistrement:</span>
+                <span class="value"><c:out value="${createdDate}"/></span>
+            </p>
         </div>
 
         <div class="message">
-            <p style="color: #999; font-size: 14px;">
-                Un email de confirmation a été envoyé à votre adresse email.
+            <p style="color: #999; font-size: 13px;">
+                Un email de confirmation a été envoyé à votre adresse email. 
+                Vérifiez votre dossier spam si vous ne le recevez pas.
             </p>
         </div>
 
         <div class="form-actions">
-            <a href="/demande/nouveau" class="btn-secondary">Nouvelle Demande</a>
-            <a href="/" class="btn-primary">Accueil</a>
+            <a href="/demande/nouveau" class="btn-secondary">Créer une Autre Demande</a>
+            <a href="/" class="btn-primary">Retour à l'Accueil</a>
         </div>
     </div>
 </body>
