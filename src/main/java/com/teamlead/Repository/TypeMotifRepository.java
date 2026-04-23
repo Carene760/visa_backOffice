@@ -7,4 +7,8 @@ import com.teamlead.Model.TypeMotif;
 
 @Repository
 public interface TypeMotifRepository extends JpaRepository<TypeMotif, Integer> {
+    /**
+     * Récupère un motif par son libellé
+     */
+    TypeMotif findByLibelle(String libelle);
 }

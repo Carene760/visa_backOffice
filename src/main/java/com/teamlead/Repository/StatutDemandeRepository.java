@@ -7,5 +7,8 @@ import com.teamlead.Model.StatutDemande;
 
 @Repository
 public interface StatutDemandeRepository extends JpaRepository<StatutDemande, Integer> {
+    /**
+     * Récupère un statut par son libellé
+     */
     StatutDemande findByLibelle(String libelle);
 }
