@@ -3,14 +3,14 @@ package com.teamlead.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.teamlead.Model.SituationMatrimoniale;
-import com.teamlead.Repository.SituationMatrimoniaRepository;
+import com.teamlead.Repository.SituationMatrimonialeRepository;
 import java.util.List;
 
 @Service
-public class SituationMatrimoniaService {
+public class SituationMatrimonialeService {
 
     @Autowired
-    private SituationMatrimoniaRepository situationMatrimonialeRepository;
+    private SituationMatrimonialeRepository situationMatrimonialeRepository;
 
     public List<SituationMatrimoniale> findAll() {
         return situationMatrimonialeRepository.findAll();
