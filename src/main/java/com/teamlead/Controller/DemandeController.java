@@ -18,7 +18,7 @@ public class DemandeController {
     private NationaliteService nationaliteService;
 
     @Autowired
-    private SituationMatrimoniaService situationMatrimoniaService;
+    private SituationMatrimonialeService situationMatrimonialeService;
 
     @Autowired
     private TypeMotifService typeMotifService;
@@ -33,7 +33,7 @@ public class DemandeController {
     public String afficherFormulaire(Model model) {
         // Charger les données de référence
         List<Nationalite> nationalites = nationaliteService.findAll();
-        List<SituationMatrimoniale> situations = situationMatrimoniaService.findAll();
+        List<SituationMatrimoniale> situations = situationMatrimonialeService.findAll();
         List<TypeMotif> typeMotifs = typeMotifService.findAll();
         List<TypeDocument> documentsCommuns = typeDocumentService.findDocumentsCommuns();
         List<TypeDocument> documentsSpecifiques = typeDocumentService.findDocumentsSpecifiques();
