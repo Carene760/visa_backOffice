@@ -89,7 +89,15 @@ public class DemandeService {
             demandeur.setNom(demandeDTO.getNom());
             demandeur.setPrenom(demandeDTO.getPrenom());
             demandeur.setNomNaissance(demandeDTO.getNomNaissance());
+            Demandeur existant = demandeurRepository.findByEmail(demandeDTO.getEmail());
+            if (existant != null) {
+                throw new IllegalArgumentException("Email déjà utilisé");
+            }
             demandeur.setEmail(demandeDTO.getEmail());
+            Demandeur existantTel = demandeurRepository.findByTelephone(demandeDTO.getTelephone());
+            if (existantTel != null) {
+                throw new IllegalArgumentException("Numéro de téléphone déjà utilisé");
+            }
             demandeur.setTelephone(demandeDTO.getTelephone());
             demandeur.setDateNaissance(demandeDTO.getDateNaissance());
             demandeur.setLieuNaissance(demandeDTO.getLieuNaissance());
@@ -206,10 +214,7 @@ public class DemandeService {
             
             // Analyser l'erreur pour fournir un message clair
             if (errorMsg != null) {
-                if (errorMsg.contains("email") || errorMsg.contains("demandeur_email")) {
-                    validation.setMessage("Erreur: Cet email est déjà utilisé dans le système");
-                    validation.addError("Un demandeur avec cet email existe déjà. Veuillez utiliser un autre email.");
-                } else if (errorMsg.contains("telephone") || errorMsg.contains("demandeur_telephone")) {
+                if (errorMsg.contains("telephone") || errorMsg.contains("demandeur_telephone")) {
                     validation.setMessage("Erreur: Ce numéro de téléphone est déjà utilisé");
                     validation.addError("Un demandeur avec ce numéro de téléphone existe déjà. Veuillez utiliser un autre numéro.");
                 } else if (errorMsg.contains("id_statut_demande")) {

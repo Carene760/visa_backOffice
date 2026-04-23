@@ -16,6 +16,7 @@ import com.teamlead.Service.*;
 import java.util.List;
 import com.teamlead.DTO.DemandeCreationDTO;
 import com.teamlead.DTO.ValidationErrorDTO;
+import java.time.LocalDate;
 
 @Controller
 @RequestMapping("/demande")
@@ -41,20 +42,7 @@ public class DemandeController {
 
     @GetMapping("/nouveau")
     public String afficherFormulaire(Model model) {
-        // Charger les données de référence
-        List<Nationalite> nationalites = nationaliteService.findAll();
-        List<SituationMatrimoniale> situations = situationMatrimonialeService.findAll();
-        List<TypeMotif> typeMotifs = typeMotifService.findAll();
-        List<TypeDocument> documentsCommuns = typeDocumentService.findDocumentsCommuns();
-        List<TypeDocument> documentsSpecifiques = typeDocumentService.findDocumentsSpecifiques();
-        List<TypeDemande> typesDemande = typeDemandeService.findAll();
-
-        model.addAttribute("nationalites", nationalites);
-        model.addAttribute("situations", situations);
-        model.addAttribute("typeMotifs", typeMotifs);
-        model.addAttribute("documentsCommuns", documentsCommuns);
-        model.addAttribute("documentsSpecifiques", documentsSpecifiques);
-        model.addAttribute("typesDemande", typesDemande);
+        chargerDonneesReference(model);
         model.addAttribute("demande", new Demande());
 
         return "demande/formulaire";
@@ -91,28 +79,29 @@ public class DemandeController {
             @RequestParam(required = false) Integer type_motif,
             @RequestParam(required = false) String[] documents,
             Model model) {
+        DemandeCreationDTO demandeDTO = new DemandeCreationDTO();
+
         try {
             // Construire le DTO à partir des paramètres du formulaire
-            DemandeCreationDTO demandeDTO = new DemandeCreationDTO();
             demandeDTO.setNom(demandeur_nom);
             demandeDTO.setPrenom(demandeur_prenom);
             demandeDTO.setNomNaissance(demandeur_nom_naissance);
             demandeDTO.setEmail(demandeur_email);
             demandeDTO.setTelephone(demandeur_telephone);
             demandeDTO.setIdNationalite(demandeur_nationalite);
-            demandeDTO.setDateNaissance(demandeur_date_naissance != null && !demandeur_date_naissance.isEmpty() ? java.time.LocalDate.parse(demandeur_date_naissance) : null);
+            demandeDTO.setDateNaissance(parseDateOrNull(demandeur_date_naissance));
             demandeDTO.setLieuNaissance(demandeur_lieu_naissance);
             demandeDTO.setIdSituationMatrimoniale(demandeur_situation);
             demandeDTO.setAdresseMadagascar(demandeur_adresse);
             
             demandeDTO.setNumeroPasseport(passeport_numero);
-            demandeDTO.setDateDelivrancePasseport(passeport_date_delivrance != null && !passeport_date_delivrance.isEmpty() ? java.time.LocalDate.parse(passeport_date_delivrance) : null);
-            demandeDTO.setDateExpirationPasseport(passeport_date_expiration != null && !passeport_date_expiration.isEmpty() ? java.time.LocalDate.parse(passeport_date_expiration) : null);
+            demandeDTO.setDateDelivrancePasseport(parseDateOrNull(passeport_date_delivrance));
+            demandeDTO.setDateExpirationPasseport(parseDateOrNull(passeport_date_expiration));
             
             demandeDTO.setReferenceVisa(visa_reference);
-            demandeDTO.setDateEntreeVisa(visa_date_entree != null && !visa_date_entree.isEmpty() ? java.time.LocalDate.parse(visa_date_entree) : null);
+            demandeDTO.setDateEntreeVisa(parseDateOrNull(visa_date_entree));
             demandeDTO.setLieuEntreeVisa(visa_lieu_entree);
-            demandeDTO.setDateExpirationVisa(visa_date_expiration != null && !visa_date_expiration.isEmpty() ? java.time.LocalDate.parse(visa_date_expiration) : null);
+            demandeDTO.setDateExpirationVisa(parseDateOrNull(visa_date_expiration));
             
             demandeDTO.setIdTypeDemande(type_demande);
             demandeDTO.setIdTypeMotif(type_motif);
@@ -141,28 +130,43 @@ public class DemandeController {
                 
                 // Passer le DTO avec les valeurs saisies pour les restaurer
                 model.addAttribute("demandeDTO", demandeDTO);
-
-                // Recharger les données de référence pour le formulaire
-                List<Nationalite> nationalites = nationaliteService.findAll();
-                List<SituationMatrimoniale> situations = situationMatrimonialeService.findAll();
-                List<TypeMotif> typeMotifs = typeMotifService.findAll();
-                List<TypeDocument> documentsCommuns = typeDocumentService.findDocumentsCommuns();
-                List<TypeDocument> documentsSpecifiques = typeDocumentService.findDocumentsSpecifiques();
-                List<TypeDemande> typesDemande = typeDemandeService.findAll();
-
-                model.addAttribute("nationalites", nationalites);
-                model.addAttribute("situations", situations);
-                model.addAttribute("typeMotifs", typeMotifs);
-                model.addAttribute("documentsCommuns", documentsCommuns);
-                model.addAttribute("documentsSpecifiques", documentsSpecifiques);
-                model.addAttribute("typesDemande", typesDemande);
+                chargerDonneesReference(model);
                 
                 return "demande/formulaire";
             }
             
         } catch (Exception e) {
-            model.addAttribute("erreur", "Erreur lors de la création: " + e.getMessage());
+            model.addAttribute("erreur", "Une erreur est survenue. Veuillez verifier les champs saisis puis reessayer.");
+            model.addAttribute("demandeDTO", demandeDTO);
+            chargerDonneesReference(model);
             return "demande/formulaire";
+        }
+    }
+
+    private void chargerDonneesReference(Model model) {
+        List<Nationalite> nationalites = nationaliteService.findAll();
+        List<SituationMatrimoniale> situations = situationMatrimonialeService.findAll();
+        List<TypeMotif> typeMotifs = typeMotifService.findAll();
+        List<TypeDocument> documentsCommuns = typeDocumentService.findDocumentsCommuns();
+        List<TypeDocument> documentsSpecifiques = typeDocumentService.findDocumentsSpecifiques();
+        List<TypeDemande> typesDemande = typeDemandeService.findAll();
+
+        model.addAttribute("nationalites", nationalites);
+        model.addAttribute("situations", situations);
+        model.addAttribute("typeMotifs", typeMotifs);
+        model.addAttribute("documentsCommuns", documentsCommuns);
+        model.addAttribute("documentsSpecifiques", documentsSpecifiques);
+        model.addAttribute("typesDemande", typesDemande);
+    }
+
+    private LocalDate parseDateOrNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(value);
+        } catch (Exception ex) {
+            return null;
         }
     }
 
