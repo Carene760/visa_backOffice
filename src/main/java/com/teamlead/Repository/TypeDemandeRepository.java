@@ -7,7 +7,6 @@ import com.teamlead.Model.TypeDemande;
 
 @Repository
 public interface TypeDemandeRepository extends JpaRepository<TypeDemande, Integer> {
-    
     /**
      * Récupère un type de demande par son libellé
      */

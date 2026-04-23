@@ -1,7 +1,7 @@
 Sprint 1 :
 
 TEAM LEAD : 3371
-DEV1 : XXXX
+DEV1 : 3273
 DEV2 : 3265
 
 DEV1 :

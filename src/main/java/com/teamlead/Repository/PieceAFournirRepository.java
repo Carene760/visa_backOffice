@@ -9,7 +9,6 @@ import com.teamlead.Model.PieceAFournir;
 
 @Repository
 public interface PieceAFournirRepository extends JpaRepository<PieceAFournir, Integer> {
-    
     /**
      * Récupère toutes les pièces à fournir pour une demande
      */

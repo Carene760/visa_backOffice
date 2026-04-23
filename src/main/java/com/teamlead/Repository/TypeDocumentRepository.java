@@ -9,7 +9,6 @@ import com.teamlead.Model.TypeDocument;
 
 @Repository
 public interface TypeDocumentRepository extends JpaRepository<TypeDocument, Integer> {
-    
     /**
      * Récupère les documents obligatoires
      */
@@ -24,4 +23,8 @@ public interface TypeDocumentRepository extends JpaRepository<TypeDocument, Inte
      * Récupère un document par son libellé
      */
     TypeDocument findByLibelle(String libelle);
+    List<TypeDocument> findByObligatoire(Boolean obligatoire);
+    List<TypeDocument> findByTypeMotifIsNull();
+    List<TypeDocument> findByTypeMotif_Id(Integer idTypeMotif);
+    List<TypeDocument> findByTypeMotifIsNotNull();
 }
