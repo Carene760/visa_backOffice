@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 import com.teamlead.Model.SituationMatrimoniale;
 
 @Repository
-public interface SituationMatrimoniaRepository extends JpaRepository<SituationMatrimoniale, Integer> {
+public interface SituationMatrimonialeRepository extends JpaRepository<SituationMatrimoniale, Integer> {
 }
