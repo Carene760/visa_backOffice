@@ -13,18 +13,32 @@ import com.teamlead.DTO.DemandeCreationDTO;
 import com.teamlead.DTO.ValidationErrorDTO;
 import com.teamlead.Model.Demande;
 import com.teamlead.Model.Demandeur;
+import com.teamlead.Model.JournalActivite;
+import com.teamlead.Model.MotifTransfert;
+import com.teamlead.Model.Passeport;
+import com.teamlead.Model.PasseportVisa;
 import com.teamlead.Model.PieceAFournir;
 import com.teamlead.Model.StatutDemande;
+import com.teamlead.Model.TypeEvenement;
 import com.teamlead.Model.TypeMotif;
 import com.teamlead.Model.TypeDemande;
+import com.teamlead.Model.TypeVisa;
+import com.teamlead.Model.Visa;
 import com.teamlead.Model.Nationalite;
 import com.teamlead.Model.SituationMatrimoniale;
 import com.teamlead.Repository.DemandeRepository;
 import com.teamlead.Repository.DemandeurRepository;
+import com.teamlead.Repository.JournalActiviteRepository;
+import com.teamlead.Repository.MotifTransfertRepository;
+import com.teamlead.Repository.PasseportVisaRepository;
 import com.teamlead.Repository.PieceAFournirRepository;
+import com.teamlead.Repository.TypeEvenementRepository;
 import com.teamlead.Repository.TypeDocumentRepository;
+import com.teamlead.Repository.TypeVisaRepository;
+import com.teamlead.Repository.VisaRepository;
 import com.teamlead.Repository.StatutDemandeRepository;
 import com.teamlead.Repository.NationaliteRepository;
+import com.teamlead.Repository.PasseportRepository;
 import com.teamlead.Repository.SituationMatrimonialeRepository;
 import com.teamlead.Repository.TypeMotifRepository;
 import com.teamlead.Repository.TypeDemandeRepository;
@@ -58,6 +72,27 @@ public class DemandeService {
 
     @Autowired
     private TypeDemandeRepository typeDemandeRepository;
+
+    @Autowired
+    private PasseportRepository passeportRepository;
+
+    @Autowired
+    private VisaRepository visaRepository;
+
+    @Autowired
+    private PasseportVisaRepository passeportVisaRepository;
+
+    @Autowired
+    private TypeVisaRepository typeVisaRepository;
+
+    @Autowired
+    private TypeEvenementRepository typeEvenementRepository;
+
+    @Autowired
+    private JournalActiviteRepository journalActiviteRepository;
+
+    @Autowired
+    private MotifTransfertRepository motifTransfertRepository;
 
     @Autowired
     private DemandeValidationService demandeValidationService;
@@ -183,7 +218,78 @@ public class DemandeService {
             
             demande = demandeRepository.save(demande);
 
-            // 8. Créer les pièces à fournir
+            // 8. Créer et sauvegarder le passeport
+            Passeport passeport = new Passeport();
+            passeport.setDemandeur(demandeur);
+            Passeport existantPasseport = passeportRepository.findByNumero(demandeDTO.getNumeroPasseport());
+            if (existantPasseport != null) {
+                throw new IllegalArgumentException("Numero de passeport déjà utilisée");
+            }
+            passeport.setNumero(demandeDTO.getNumeroPasseport());
+            passeport.setDateDelivrance(demandeDTO.getDateDelivrancePasseport());
+            passeport.setDateExpiration(demandeDTO.getDateExpirationPasseport());
+            passeport.setDateCreation(LocalDateTime.now());
+            passeport = passeportRepository.save(passeport);
+
+            // 9. Créer et sauvegarder le visa transformable
+            TypeVisa typeVisa = typeVisaRepository.findByLibelle("TRANSFORMABLE");
+            if (typeVisa == null) {
+                validation.setSuccess(false);
+                validation.setMessage("Erreur de configuration du système");
+                validation.addError("Le type de visa 'TRANSFORMABLE' est introuvable. Veuillez verifier les donnees de reference.");
+                return validation;
+            }
+
+            com.teamlead.Model.Visa visa = new com.teamlead.Model.Visa();
+            Visa existantVisa = visaRepository.findByReference(demandeDTO.getReferenceVisa());
+            if (existantVisa != null) {
+                throw new IllegalArgumentException("Reference de visa déjà utilisée");
+            }
+            visa.setReference(demandeDTO.getReferenceVisa());
+            visa.setDateEntree(demandeDTO.getDateEntreeVisa());
+            visa.setLieuEntree(demandeDTO.getLieuEntreeVisa());
+            visa.setDateExpiration(demandeDTO.getDateExpirationVisa());
+            visa.setDemande(demande);
+            visa.setTypeVisa(typeVisa);
+            visa.setDateEmission(LocalDateTime.now());
+            visa.setDateModification(LocalDateTime.now());
+            visa = visaRepository.save(visa);
+
+            // 10. Créer et sauvegarder l'association passeport_visa
+            MotifTransfert motifTransfert = motifTransfertRepository.findFirstByOrderByIdAsc()
+                    .orElseGet(() -> {
+                        MotifTransfert created = new MotifTransfert();
+                        created.setLibelle("CREATION DEMANDE");
+                        return motifTransfertRepository.save(created);
+                    });
+
+            PasseportVisa passeportVisa = new PasseportVisa();
+            passeportVisa.setPasseport(passeport);
+            passeportVisa.setVisa(visa);
+            passeportVisa.setDateAssociation(java.time.LocalDate.now());
+            passeportVisa.setMotifTransfert(motifTransfert);
+            passeportVisa.setDateCreation(LocalDateTime.now());
+            passeportVisaRepository.save(passeportVisa);
+
+            // 11. Enregistrer dans le journal d'activite
+            TypeEvenement typeEvenement = typeEvenementRepository.findByCode("CREATION DEMANDE");
+            if (typeEvenement == null) {
+                typeEvenement = typeEvenementRepository.findByCode("CREATION_DEMANDE");
+            }
+            if (typeEvenement == null) {
+                validation.setSuccess(false);
+                validation.setMessage("Erreur de configuration du système");
+                validation.addError("Le type d'evenement 'CREATION DEMANDE' est introuvable.");
+                return validation;
+            }
+
+            JournalActivite journal = new JournalActivite();
+            journal.setDemandeur(demandeur);
+            journal.setTypeEvenement(typeEvenement);
+            journal.setDateAction(LocalDateTime.now());
+            journalActiviteRepository.save(journal);
+
+            // 12. Créer les pièces à fournir
             if (demandeDTO.getPiecesPresentes() != null && !demandeDTO.getPiecesPresentes().isEmpty()) {
                 for (Integer idDocument : demandeDTO.getPiecesPresentes()) {
                     PieceAFournir piece = new PieceAFournir();
@@ -196,7 +302,7 @@ public class DemandeService {
                 }
             }
 
-            // 9. Enregistrer dans l'historique du statut
+            // 13. Enregistrer dans l'historique du statut
             ValidationErrorDTO resultStatut = demandeStatusService.initializeDemandeStatus(demande);
             if (!resultStatut.isSuccess()) {
                 validation.setSuccess(false);
