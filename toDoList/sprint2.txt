@@ -1,0 +1,684 @@
+Sprint 2 :
+
+TEAM LEAD : 3273
+DEV1 : 
+DEV2 : 
+
+
+DEV1 :
+	Branche dev1 : sprint2/1/branche1_dev1_sans_donnee_interieur
+
+		A) a faire en premier
+			TypeVisa introuvable / robustesse reference TRANSFORMABLE
+				- Dans TypeVisaRepository.java Remplacer TypeVisaRepository.java par :
+					package com.teamlead.Repository;
+					import java.util.Optional;
+					import org.springframework.data.jpa.repository.JpaRepository;
+					import org.springframework.data.jpa.repository.Query;
+					import org.springframework.data.repository.query.Param;
+					import org.springframework.stereotype.Repository;
+					import com.teamlead.Model.TypeVisa;
+					@Repository
+					public interface TypeVisaRepository extends JpaRepository<TypeVisa, Integer> {
+					    TypeVisa findByLibelle(String libelle);
+					    Optional<TypeVisa> findFirstByLibelleIgnoreCase(String libelle);
+					    @Query("SELECT t FROM TypeVisa t WHERE UPPER(TRIM(t.libelle)) = UPPER(TRIM(:libelle))")
+					    Optional<TypeVisa> findNormalizedByLibelle(@Param("libelle") String libelle);
+					}
+
+				- Dans DemandeService.java, supprimer la ligne ancienne :
+					TypeVisa typeVisa = typeVisaRepository.findByLibelle("TRANSFORMABLE");
+				  et remplacer par :
+					TypeVisa typeVisa = typeVisaRepository.findNormalizedByLibelle("TRANSFORMABLE")
+					                    .or(() -> typeVisaRepository.findFirstByLibelleIgnoreCase("TRANSFORMABLE"))
+					                    .orElse(null);
+				- Dans DemandeService.java Ajouter le debug explicite dans DemandeService.java (liste des valeurs en base) :
+					List<String> typeVisaLibelles = typeVisaRepository.findAll().stream()           => ligne 242
+					                        .map(TypeVisa::getLibelle)                              => ligne 243
+					                        .toList();                                              => ligne 244
+					validation.addError("Types de visa actuellement en base: " + typeVisaLibelles); => ligne 245
+
+
+			Correspondance conception <-> code (copie-coller directe dans les classes .java dites ci-dessous)
+				- Classe Visa.java copie colle directe :
+                        package com.teamlead.Model;
+                        import java.time.LocalDate;
+                        import java.time.LocalDateTime;
+                        import jakarta.persistence.Column;
+                        import jakarta.persistence.Entity;
+                        import jakarta.persistence.FetchType;
+                        import jakarta.persistence.ForeignKey;
+                        import jakarta.persistence.GeneratedValue;
+                        import jakarta.persistence.GenerationType;
+                        import jakarta.persistence.Id;
+                        import jakarta.persistence.JoinColumn;
+                        import jakarta.persistence.ManyToOne;
+                        import jakarta.persistence.Table;
+                        import lombok.Getter;
+                        import lombok.Setter;
+                        @Entity
+                        @Table(name="visa")
+                        @Getter @Setter
+                        public class Visa{
+                        @Id @GeneratedValue(strategy=GenerationType.IDENTITY)
+                        private Integer id;
+                        @Column(nullable=false,unique=true,length=100)
+                        private String reference;
+                        @ManyToOne(fetch=FetchType.LAZY)
+                        @JoinColumn(name="id_type_visa",nullable=false,foreignKey=@ForeignKey(name="visa_id_type_visa_fkey"))
+                        private TypeVisa typeVisa;
+                        @Column(name="date_entree",nullable=false)
+                        private LocalDate dateEntree;
+                        @Column(name="lieu_entree",length=150)
+                        private String lieuEntree;
+                        @Column(name="date_expiration",nullable=false)
+                        private LocalDate dateExpiration;
+                        @ManyToOne(fetch=FetchType.LAZY)
+                        @JoinColumn(name="id_demande",nullable=false,foreignKey=@ForeignKey(name="visa_id_demande_fkey"))
+                        private Demande demande;
+                        @Column(name="id_demandeur",nullable=false)
+                        private Integer idDemandeur;
+                        @Column(name="date_emission")
+                        private LocalDateTime dateEmission;
+                        @Column(name="date_modification")
+                        private LocalDateTime dateModification;
+                    }
+
+
+				- Classe Demande.java copie colle directe :
+                        package com.teamlead.Model;
+                        import java.time.LocalDateTime;
+                        import jakarta.persistence.Column;
+                        import jakarta.persistence.Entity;
+                        import jakarta.persistence.FetchType;
+                        import jakarta.persistence.ForeignKey;
+                        import jakarta.persistence.GeneratedValue;
+                        import jakarta.persistence.GenerationType;
+                        import jakarta.persistence.Id;
+                        import jakarta.persistence.JoinColumn;
+                        import jakarta.persistence.ManyToOne;
+                        import jakarta.persistence.Table;
+                        import lombok.Getter;
+                        import lombok.Setter;
+
+                        @Entity
+                        @Table(name="demande")
+                        @Getter @Setter
+                        public class Demande{
+                        @Id @GeneratedValue(strategy=GenerationType.IDENTITY)
+                        private Integer id;
+                        @ManyToOne(fetch=FetchType.LAZY)
+                        @JoinColumn(name="id_demandeur",nullable=false,foreignKey=@ForeignKey(name="demande_id_demandeur_fkey"))
+                        private Demandeur demandeur;
+                        @ManyToOne(fetch=FetchType.LAZY)
+                        @JoinColumn(name="id_type_motif",nullable=false,foreignKey=@ForeignKey(name="demande_id_type_motif_fkey"))
+                        private TypeMotif typeMotif;
+                        @ManyToOne(fetch=FetchType.LAZY)
+                        @JoinColumn(name="id_type_demande",nullable=false,foreignKey=@ForeignKey(name="demande_id_type_demande_fkey"))
+                        private TypeDemande typeDemande;
+                        @ManyToOne(fetch=FetchType.LAZY)
+                        @JoinColumn(name="id_statut_demande",nullable=false,foreignKey=@ForeignKey(name="demande_id_statut_demande_fkey"))
+                        private StatutDemande statutDemande;
+                        @Column(name="date_demande")
+                        private LocalDateTime dateDemande;
+                        @Column(name="date_traitement")
+                        private LocalDateTime dateTraitement;
+                        @Column(name="date_modification")
+                        private LocalDateTime dateModification;
+                        }
+
+                - Classe DemandeService.java copie colle directe :
+                    package com.teamlead.Service;
+                    import java.time.LocalDateTime;
+                    import java.util.List;
+                    import org.springframework.beans.factory.annotation.Autowired;
+                    import org.springframework.dao.DataIntegrityViolationException;
+                    import org.springframework.stereotype.Service;
+                    import org.springframework.transaction.annotation.Transactional;
+                    import com.teamlead.DTO.DemandeCreationDTO;
+                    import com.teamlead.DTO.ValidationErrorDTO;
+                    import com.teamlead.Exception.ValidationException;
+                    import com.teamlead.Model.*;
+                    import com.teamlead.Repository.*;
+
+                    @Service
+                    public class DemandeService{
+                    @Autowired private DemandeRepository demandeRepository;
+                    @Autowired private DemandeurRepository demandeurRepository;
+                    @Autowired private PieceAFournirRepository pieceAFournirRepository;
+                    @Autowired private TypeDocumentRepository typeDocumentRepository;
+                    @Autowired private StatutDemandeRepository statutDemandeRepository;
+                    @Autowired private NationaliteRepository nationaliteRepository;
+                    @Autowired private SituationMatrimonialeRepository situationMatrimonialeRepository;
+                    @Autowired private TypeMotifRepository typeMotifRepository;
+                    @Autowired private TypeDemandeRepository typeDemandeRepository;
+                    @Autowired private PasseportRepository passeportRepository;
+                    @Autowired private VisaRepository visaRepository;
+                    @Autowired private PasseportVisaRepository passeportVisaRepository;
+                    @Autowired private TypeVisaRepository typeVisaRepository;
+                    @Autowired private TypeEvenementRepository typeEvenementRepository;
+                    @Autowired private JournalActiviteRepository journalActiviteRepository;
+                    @Autowired private MotifTransfertRepository motifTransfertRepository;
+                    @Autowired private DemandeValidationService demandeValidationService;
+                    @Autowired private DemandeStatusService demandeStatusService;
+
+                    @Transactional
+                    public ValidationErrorDTO creerNouvelleDemande(DemandeCreationDTO demandeDTO){
+                    ValidationErrorDTO validation=new ValidationErrorDTO(true,"Demande créée avec succès");
+                    if(demandeDTO.getIdTypeMotif()==null)return failure("Erreur: Type de motif obligatoire","Vous devez sélectionner un statut du visa demandé.");
+                    if(demandeDTO.getIdTypeDemande()==null)return failure("Erreur: Type de demande obligatoire","Vous devez sélectionner un type de demande.");
+                    if(demandeDTO.getIdNationalite()==null)return failure("Erreur: Nationalité obligatoire","Vous devez sélectionner une nationalité.");
+                    if(demandeDTO.getDateNaissance()==null)return failure("Erreur: Date de naissance obligatoire","La date de naissance est obligatoire.");
+                    if(demandeDTO.getDateDelivrancePasseport()==null||demandeDTO.getDateExpirationPasseport()==null)return failure("Erreur: Dates du passeport obligatoires","Les dates de délivrance et d'expiration du passeport sont obligatoires.");
+                    if(demandeDTO.getDateEntreeVisa()==null||demandeDTO.getDateExpirationVisa()==null)return failure("Erreur: Dates du visa obligatoires","Les dates d'entrée et d'expiration du visa sont obligatoires.");
+                    if(!demandeDTO.getDateExpirationPasseport().isAfter(demandeDTO.getDateDelivrancePasseport()))return failure("Erreur: Dates du passeport incohérentes","La date d'expiration du passeport doit être postérieure à la date de délivrance.");
+                    if(!demandeDTO.getDateExpirationVisa().isAfter(demandeDTO.getDateEntreeVisa()))return failure("Erreur: Dates du visa incohérentes","La date d'expiration du visa doit être strictement postérieure à la date d'entrée.");
+
+                    Nationalite nationalite=nationaliteRepository.findById(demandeDTO.getIdNationalite()).orElseThrow(()->new ValidationException("Erreur: Nationalité invalide",List.of("La nationalité sélectionnée n'existe pas en base de données.")));
+                    SituationMatrimoniale situation=null;
+                    if(demandeDTO.getIdSituationMatrimoniale()!=null)situation=situationMatrimonialeRepository.findById(demandeDTO.getIdSituationMatrimoniale()).orElseThrow(()->new ValidationException("Erreur: Situation matrimoniale invalide",List.of("La situation matrimoniale sélectionnée n'existe pas en base de données.")));
+
+                    Demandeur demandeur=new Demandeur();
+                    demandeur.setNom(demandeDTO.getNom());
+                    demandeur.setPrenom(demandeDTO.getPrenom());
+                    demandeur.setNomNaissance(demandeDTO.getNomNaissance());
+                    demandeur.setEmail(demandeDTO.getEmail());
+                    demandeur.setTelephone(demandeDTO.getTelephone());
+                    demandeur.setDateNaissance(demandeDTO.getDateNaissance());
+                    demandeur.setLieuNaissance(demandeDTO.getLieuNaissance());
+                    demandeur.setAdresseMadagascar(demandeDTO.getAdresseMadagascar());
+                    demandeur.setNationalite(nationalite);
+                    demandeur.setSituationMatrimoniale(situation);
+                    demandeur.setDateCreation(LocalDateTime.now());
+
+                    ValidationErrorDTO validationDemandeur=demandeValidationService.validerDemandeur(demandeur);
+                    if(!validationDemandeur.isSuccess())return buildFailure("Erreurs de validation du demandeur",validationDemandeur.getErrors());
+
+                    ValidationErrorDTO validationDocuments=demandeValidationService.validerDocumentsObligatoires(demandeDTO.getPiecesPresentes(),demandeDTO.getIdTypeMotif());
+                    if(!validationDocuments.isSuccess())return buildFailure("Documents obligatoires manquants",validationDocuments.getErrors());
+
+                    if(demandeurRepository.findByEmail(demandeDTO.getEmail())!=null)return failure("Erreur: Email déjà utilisé","Un demandeur avec cet email existe déjà.");
+                    if(demandeurRepository.findByTelephone(demandeDTO.getTelephone())!=null)return failure("Erreur: Numéro déjà utilisé","Un demandeur avec ce numéro existe déjà.");
+                    if(passeportRepository.findByNumero(demandeDTO.getNumeroPasseport())!=null)return failure("Erreur: Passeport déjà utilisé","Un passeport avec ce numéro existe déjà.");
+                    if(visaRepository.findByReference(demandeDTO.getReferenceVisa())!=null)return failure("Erreur: Référence déjà utilisée","Une demande avec cette référence existe déjà.");
+
+                    StatutDemande statut=statutDemandeRepository.findByLibelle("DOSSIER_CREE");
+                    if(statut==null)throw new ValidationException("Erreur système",List.of("Statut initial introuvable."));
+
+                    TypeMotif typeMotif=typeMotifRepository.findById(demandeDTO.getIdTypeMotif()).orElseThrow(()->new ValidationException("Erreur: Type motif invalide",List.of("Type motif inexistant.")));
+                    TypeDemande typeDemande=typeDemandeRepository.findById(demandeDTO.getIdTypeDemande()).orElseThrow(()->new ValidationException("Erreur: Type demande invalide",List.of("Type demande inexistant.")));
+                    TypeVisa typeVisa=typeVisaRepository.findNormalizedByLibelle("TRANSFORMABLE").or(()->typeVisaRepository.findFirstByLibelleIgnoreCase("TRANSFORMABLE")).orElseThrow(()->new ValidationException("Erreur système",List.of("Type visa introuvable.")));
+
+                    TypeEvenement typeEvenement=typeEvenementRepository.findByCode("CREATION DEMANDE");
+                    if(typeEvenement==null)typeEvenement=typeEvenementRepository.findByCode("CREATION_DEMANDE");
+                    if(typeEvenement==null)throw new ValidationException("Erreur système",List.of("Type événement introuvable."));
+
+                    try{
+                    demandeur=demandeurRepository.save(demandeur);
+                    Demande demande=new Demande();
+                    demande.setDemandeur(demandeur);
+                    demande.setDateDemande(LocalDateTime.now());
+                    demande.setStatutDemande(statut);
+                    demande.setDateTraitement(LocalDateTime.now());
+                    demande.setTypeMotif(typeMotif);
+                    demande.setTypeDemande(typeDemande);
+                    demande=demandeRepository.save(demande);
+
+                    Passeport passeport=new Passeport();
+                    passeport.setDemandeur(demandeur);
+                    passeport.setNumero(demandeDTO.getNumeroPasseport());
+                    passeport.setDateDelivrance(demandeDTO.getDateDelivrancePasseport());
+                    passeport.setDateExpiration(demandeDTO.getDateExpirationPasseport());
+                    passeport.setDateCreation(LocalDateTime.now());
+                    passeport=passeportRepository.save(passeport);
+
+                    com.teamlead.Model.Visa visa=new com.teamlead.Model.Visa();
+                    visa.setReference(demandeDTO.getReferenceVisa());
+                    visa.setDateEntree(demandeDTO.getDateEntreeVisa());
+                    visa.setLieuEntree(demandeDTO.getLieuEntreeVisa());
+                    visa.setDateExpiration(demandeDTO.getDateExpirationVisa());
+                    visa.setDemande(demande);
+                    visa.setIdDemandeur(demandeur.getId());
+                    visa.setTypeVisa(typeVisa);
+                    visa.setDateEmission(LocalDateTime.now());
+                    visa.setDateModification(LocalDateTime.now());
+                    visa=visaRepository.save(visa);
+
+                    MotifTransfert motifTransfert=motifTransfertRepository.findFirstByOrderByIdAsc().orElseGet(()->{MotifTransfert m=new MotifTransfert();m.setLibelle("CREATION DEMANDE");return motifTransfertRepository.save(m);});
+
+                    PasseportVisa pv=new PasseportVisa();
+                    pv.setPasseport(passeport);
+                    pv.setVisa(visa);
+                    pv.setDateAssociation(java.time.LocalDate.now());
+                    pv.setMotifTransfert(motifTransfert);
+                    pv.setDateCreation(LocalDateTime.now());
+                    passeportVisaRepository.save(pv);
+
+                    JournalActivite journal=new JournalActivite();
+                    journal.setDemandeur(demandeur);
+                    journal.setTypeEvenement(typeEvenement);
+                    journal.setDateAction(LocalDateTime.now());
+                    journalActiviteRepository.save(journal);
+
+                    if(demandeDTO.getPiecesPresentes()!=null&&!demandeDTO.getPiecesPresentes().isEmpty()){
+                    for(Integer id:demandeDTO.getPiecesPresentes()){
+                    PieceAFournir piece=new PieceAFournir();
+                    piece.setDemande(demande);
+                    piece.setTypeDocument(typeDocumentRepository.findById(id).orElseThrow(()->new ValidationException("Erreur doc",List.of("Doc inexistant "+id))));
+                    piece.setPresent(true);
+                    piece.setDateDepot(LocalDateTime.now());
+                    piece.setDateModification(LocalDateTime.now());
+                    pieceAFournirRepository.save(piece);
+                    }}
+
+                    demandeStatusService.initializeDemandeStatus(demande);
+                    validation.setDemandeId(demande.getId());
+                    return validation;
+
+                    }catch(DataIntegrityViolationException e){
+                    throw new ValidationException("Erreur SQL",List.of("Contrainte violée",extractMostSpecificMessage(e)));
+                    }}
+
+                    private String extractMostSpecificMessage(Throwable t){
+                    while(t.getCause()!=null)t=t.getCause();
+                    String m=t.getMessage();
+                    return(m==null||m.isBlank())?"(indisponible)":m.replace('\n',' ').replace('\r',' ').trim();
+                    }
+
+                    private ValidationErrorDTO failure(String m,String e){return buildFailure(m,List.of(e));}
+
+                    private ValidationErrorDTO buildFailure(String m,List<String> e){
+                    ValidationErrorDTO v=new ValidationErrorDTO(false,m);
+                    v.setErrors(e);
+                    return v;
+                    }
+                    }
+
+			Rollback si besoin (copie directe obligatoire)
+				- ValidationException.java copie-coller directe dans le code :
+                    package com.teamlead.Exception;
+                    import java.util.*;
+
+                    public class ValidationException extends RuntimeException{
+                    private static final long serialVersionUID=1L;
+                    private final List<String> errors;
+
+                    public ValidationException(String message){this(message,(Throwable)null);}
+                    public ValidationException(String message,Throwable cause){super(message,cause);this.errors=new ArrayList<>();}
+                    public ValidationException(String message,List<String> errors){super(message);this.errors=errors==null?new ArrayList<>():new ArrayList<>(errors);}
+                    public List<String> getErrors(){return Collections.unmodifiableList(errors);}
+                    }
+
+				- DemandeStatusService.java copie-coller directe dans le code :
+                    package com.teamlead.Service;
+                    import java.time.LocalDateTime;
+                    import org.springframework.beans.factory.annotation.Autowired;
+                    import org.springframework.stereotype.Service;
+                    import com.teamlead.Exception.ValidationException;
+                    import com.teamlead.Model.*;
+                    import com.teamlead.Repository.*;
+
+                    @Service
+                    public class DemandeStatusService{
+                    @Autowired private StatutDemandeRepository statutDemandeRepository;
+                    @Autowired private HistoriqueStatutDemandeRepository historiqueStatutDemandeRepository;
+
+                    public void initializeDemandeStatus(Demande demande){
+                    StatutDemande statut=statutDemandeRepository.findByLibelle("DOSSIER_CREE");
+                    if(statut==null)throw new ValidationException("Erreur de configuration du système",java.util.List.of("Le statut 'DOSSIER_CREE' n'existe pas en base de données."));
+                    HistoriqueStatutDemande h=new HistoriqueStatutDemande();
+                    h.setDemande(demande);
+                    h.setStatut(statut);
+                    h.setDateChangement(LocalDateTime.now());
+                    historiqueStatutDemandeRepository.save(h);
+                    }
+                    }
+
+				- Correction obligatoire de la section constructeur d ValidationException.java :
+					dans ValidationException, on remplace la section ou y'a l'erreur par ce code :
+                        public ValidationException(String message) {
+                            this(message, (Throwable) null);
+                        }
+
+			Reinitialisation SQL de test
+				- [Entites : scripts data/reset] Mettre a jour insertion_reference_sprint1.sql avec TRUNCATE complet + RESTART IDENTITY CASCADE + reinserts de reference
+				- [Entites : scripts reset] Ajouter dans reset.sql :
+					TRUNCATE TABLE type_visa RESTART IDENTITY CASCADE;
+				- [Entites : type_visa] Verifier que TRANSFORMABLE est bien insere dans les donnees de reference.
+
+			Nationalite non prise en charge
+				- DemandeController.java à copie coller directement :
+                    package com.teamlead.Controller;
+                    import java.time.LocalDate;
+                    import java.util.List;
+                    import org.springframework.beans.factory.annotation.Autowired;
+                    import org.springframework.stereotype.Controller;
+                    import org.springframework.ui.Model;
+                    import org.springframework.web.bind.annotation.*;
+                    import com.teamlead.DTO.*;
+                    import com.teamlead.Exception.ValidationException;
+                    import com.teamlead.Model.*;
+                    import com.teamlead.Service.*;
+
+                    @Controller
+                    @RequestMapping("/demande")
+                    public class DemandeController{
+                    @Autowired private NationaliteService nationaliteService;
+                    @Autowired private SituationMatrimonialeService situationMatrimonialeService;
+                    @Autowired private TypeMotifService typeMotifService;
+                    @Autowired private TypeDocumentService typeDocumentService;
+                    @Autowired private TypeDemandeService typeDemandeService;
+                    @Autowired private DemandeService demandeService;
+
+                    @GetMapping("/nouveau")
+                    public String afficherFormulaire(Model model){
+                    chargerDonneesReference(model);
+                    model.addAttribute("demande",new Demande());
+                    return "demande/formulaire";
+                    }
+
+                    @PostMapping("/creer")
+                    public String creerDemande(
+                    @RequestParam String demandeur_nom,
+                    @RequestParam(required=false) String demandeur_prenom,
+                    @RequestParam(required=false) String demandeur_nom_naissance,
+                    @RequestParam String demandeur_date_naissance,
+                    @RequestParam(required=false) String demandeur_lieu_naissance,
+                    @RequestParam Integer demandeur_nationalite,
+                    @RequestParam(required=false) Integer demandeur_situation,
+                    @RequestParam String demandeur_adresse,
+                    @RequestParam(required=false) String demandeur_email,
+                    @RequestParam String demandeur_telephone,
+                    @RequestParam String passeport_numero,
+                    @RequestParam String passeport_date_delivrance,
+                    @RequestParam String passeport_date_expiration,
+                    @RequestParam String visa_reference,
+                    @RequestParam String visa_date_entree,
+                    @RequestParam(required=false) String visa_lieu_entree,
+                    @RequestParam String visa_date_expiration,
+                    @RequestParam Integer type_demande,
+                    @RequestParam Integer type_motif,
+                    @RequestParam(required=false) String[] documents,
+                    Model model){
+                    DemandeCreationDTO dto=new DemandeCreationDTO();
+                    try{
+                    dto.setNom(demandeur_nom);
+                    dto.setPrenom(demandeur_prenom);
+                    dto.setNomNaissance(demandeur_nom_naissance);
+                    dto.setEmail(demandeur_email);
+                    dto.setTelephone(demandeur_telephone);
+                    dto.setIdNationalite(demandeur_nationalite);
+                    dto.setDateNaissance(parseDateOrNull(demandeur_date_naissance));
+                    dto.setLieuNaissance(demandeur_lieu_naissance);
+                    dto.setIdSituationMatrimoniale(demandeur_situation);
+                    dto.setAdresseMadagascar(demandeur_adresse);
+                    dto.setNumeroPasseport(passeport_numero);
+                    dto.setDateDelivrancePasseport(parseDateOrNull(passeport_date_delivrance));
+                    dto.setDateExpirationPasseport(parseDateOrNull(passeport_date_expiration));
+                    dto.setReferenceVisa(visa_reference);
+                    dto.setDateEntreeVisa(parseDateOrNull(visa_date_entree));
+                    dto.setLieuEntreeVisa(visa_lieu_entree);
+                    dto.setDateExpirationVisa(parseDateOrNull(visa_date_expiration));
+                    dto.setIdTypeDemande(type_demande);
+                    dto.setIdTypeMotif(type_motif);
+
+                    if(documents!=null&&documents.length>0){
+                    java.util.List<Integer> ids=new java.util.ArrayList<>();
+                    for(String d:documents)ids.add(Integer.parseInt(d));
+                    dto.setPiecesPresentes(ids);
+                    }
+
+                    ValidationErrorDTO res=demandeService.creerNouvelleDemande(dto);
+
+                    if(res.isSuccess()){
+                    model.addAttribute("demandeId",res.getDemandeId());
+                    model.addAttribute("createdDate",java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                    return "demande/confirmation";
+                    }else{
+                    model.addAttribute("erreur",res.getMessage());
+                    model.addAttribute("erreurs",res.getErrors());
+                    model.addAttribute("demandeDTO",dto);
+                    chargerDonneesReference(model);
+                    return "demande/formulaire";
+                    }
+
+                    }catch(ValidationException e){
+                    model.addAttribute("erreur",e.getMessage());
+                    model.addAttribute("erreurs",e.getErrors());
+                    model.addAttribute("demandeDTO",dto);
+                    chargerDonneesReference(model);
+                    return "demande/formulaire";
+                    }catch(Exception e){
+                    model.addAttribute("erreur","Une erreur inattendue est survenue.");
+                    model.addAttribute("erreurs",java.util.List.of("Type: "+e.getClass().getSimpleName(),"Détail: "+(e.getMessage()!=null?e.getMessage():"(sans message)")));
+                    model.addAttribute("demandeDTO",dto);
+                    chargerDonneesReference(model);
+                    return "demande/formulaire";
+                    }
+                    }
+
+                    private void chargerDonneesReference(Model model){
+                    model.addAttribute("nationalites",nationaliteService.findAll());
+                    model.addAttribute("situations",situationMatrimonialeService.findAll());
+                    model.addAttribute("typeMotifs",typeMotifService.findAll());
+                    model.addAttribute("documentsCommuns",typeDocumentService.findDocumentsCommuns());
+                    model.addAttribute("documentsSpecifiques",typeDocumentService.findDocumentsSpecifiques());
+                    model.addAttribute("typesDemande",typeDemandeService.findAll());
+                    }
+
+                    private LocalDate parseDateOrNull(String v){
+                    if(v==null||v.isBlank())return null;
+                    try{return LocalDate.parse(v);}catch(Exception e){return null;}
+                    }
+
+                    @GetMapping("/confirmation")
+                    public String afficherConfirmation(){return "demande/confirmation";}
+                    }
+
+
+			Suppression contraintes HTML5 cote front
+				- [Entites : formulaire.jsp] Enlever tous les required de formulaire.jsp.
+
+			Suppression emojis UI sao atao mampiasa IA *-*
+				- [Entites : UI] Enlever emoji dans confirmation.jsp et detail_demande.jsp.
+				- [Entites : UI] Enlever emoji dans formulaire.jsp.
+
+			Mode pre-remplissage / pre-cochage pour faciliter refa hi-tests
+				- Ajouter dans formulaire.jsp :
+					const modeTestParam = '${param.modeTest}'; => ligne 469
+					const modeTestEnabled = modeTestParam === '1' || modeTestParam === 'true' || modeTestParam === 'on'; => 470
+
+					if (modeTestEnabled) { => ligne 585
+					    applyTestDefaults(); => ligne 586
+					} => ligne 587
+				-  Cas d'usage url pour accéder :
+					- Pre-rempli : http://localhost:8085/demande/nouveau?modeTest=1
+					- Non Pre-rempli :     http://localhost:8085/demande/nouveau?modeTest=0
+				- si mode pre-rempli par defaut requis :
+					const modeTestEnabled = modeTestParam === '' || modeTestParam === '1' || modeTestParam === 'true' || modeTestParam === 'on';
+                - si mode non pre-rempli qu'on veut mettre par défaut :
+                    const modeTestEnabled = modeTestParam === '1' || modeTestParam === 'true' || modeTestParam === 'on';
+
+
+
+		
+        B) Sprint 2 - Noyau metier et donnees (service + schema + migration)
+			Dates de validite transformable (bloquant)
+				- [Entites : demande, visa] Implementer regle stricte : dateDemande < dateExpirationVisa.
+				- [Entites : demande, visa] Bloquer si dateDemande == dateExpirationVisa.
+				- [Entites : demande, visa] Bloquer si dateDemande > dateExpirationVisa.
+				- [Entites : demande, visa] Conserver controle dateEntree < dateExpiration.
+				- [Entites : configuration] Ajouter delta configurable (jours) dans application.properties (ex: renouvellement.delta.jours=0).
+                - Refuser si dateDemande + delta >= dateExpirationVisa
+				- Si delta > 0, autoriser seulement si dateDemande + delta < dateExpirationVisa
+                - qu'on puisse faire configurable sans dalta ;
+                - 
+
+			Controle demandeur deja titulaire d'un visa final
+				- [Entites : visa, demandeur, type_motif] Ajouter verification metier : refuser premiere demande si demandeur possede deja un visa final c'est-à-dire un visa avec un statut "visa approuvée"
+				- [Entites : repository] Ajouter methodes repository necessaires pour detection par demandeur + type final.
+
+			Source de demande et chainage duplicata/transfert
+				- [Entites : demande] Ajouter colonnes :
+					- id_demande_source INT FK -> demande.id (nullable)
+					- id_sous_type_demande INT FK
+					- avec_donnees_anterieures BOOLEAN
+					- est_base_generee BOOLEAN DEFAULT FALSE NULL
+				- [Entites : regle metier] Un duplicata/transfert doit toujours avoir id_demande_source renseigne.
+				- [Entites : regle metier] source et demande courante doivent avoir le meme id_demandeur.
+
+			Nouvelles tables Sprint 2
+				- [Entites : sous_type_demande] Creer nouvelle table sous_type_demande : id(SERIAL PRIMARY KEY ), libelle UNIQUE VARCHAR(TRANSFERT_VISA, DUPLICATA_CARTE, LES_DEUX).
+				- [Entites : recherche_antecendent] Creer nouvelle table recherche_antecendent : (id(SERIAL PRIMARY KEY), id_demande(INT FK → demande(id)), critere_recherche(VARCHAR(50) (NUMERO_VISA | PASSEPORT | CARTE)), valeur_rechercheeVARCHAR(100), trouve(BOOLEAN), date_recherche(TIMESTAMP DEFAULT NOW()).
+				- [Entites : carte_resident] Creer table carte_resident :
+                    CREATE TABLE carte_resident (
+                        id SERIAL PRIMARY KEY,
+                        reference VARCHAR(100) NOT NULL UNIQUE,
+                        date_entree DATE NOT NULL,
+                        lieu_entree VARCHAR(150),
+                        date_expiration DATE,
+                        id_demande INT NOT NULL,
+                        id_passeport INT NOT NULL, 
+                        date_emission TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        date_modification TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (id_demande) REFERENCES demande(id),
+                        FOREIGN KEY (id_passeport) REFERENCES passeport(id),
+                        CHECK (date_expiration >= date_entree)
+                    );
+
+			Reference data Sprint 2
+				- [Entites : type_demande] Inserer : NOUVEAU_TITRE, DUPLICATA (sous-type porte par sous_type_demande).
+				- [Entites : statut_demande] Inserer : DOSSIER_CREE, SCAN_TERMINE, VISA_APPROUVEE, REFUSE.
+                VISA_APPROUVEE signifie que la demande aboutit a la carte resident et au visa.
+				- [Entites : type_evenement] Inserer : RECHERCHE_ANTECEDENTS, AUTO_DECISION_SANS_ANTERIEURS, CREATION_DEMANDE_BASE.
+                
+
+			Logique sans donnees anterieures (service metier obligatoire)
+				- [Entites : demande, statut, historique] Etape 1: reception DUPLICATA/TRANSFERT sans antecedent trouve.
+				- [Entites : demande] Etape 2: creer demande base (type=NOUVEAU_TITRE, est_base_generee=TRUE) + DOSSIER_CREE.
+				- [Entites : statut, historique] Etape 3: faire evoluer demande base directement vers VISA_APPROUVEE avec historique complet.
+				- [Entites : demande] Etape 4: creer demande metier DUPLICATA/TRANSFERT avec id_demande_source=base.id.
+				- [Entites : journal_activite] Etape 5: journaliser AUTO_DECISION_SANS_ANTERIEURS.
+				- [Entites : recherche_antecendent] Etape 6: stocker resultat trouve=FALSE.
+
+			Historique et audit obligatoires
+				- [Entites : historique_statut_demande] Chaque transition de statut doit ecrire une ligne d'historique.
+				- [Entites : journal_activite] Journaliser recherche antecedents, auto-decision, creation demande base, changements de statut critiques.
+
+			Contraintes SQL supplementaires
+				- [Entites : schema] Modifier id_situation_matrimoniale en NOT NULL si valide metierement(par rapport à metier) avec le formulaire et la migration.
+				- [Entites : schema] Ajouter FK (id_demandeur) REFERENCES demandeur(id) ON DELETE CASCADE dans init.sql
+
+DEV2 :
+	Branche dev2 : sprint2/2/branche2_dev2_sans_donnee_interieur
+
+		A) Formulaire dynamique et parcours metier
+			Types de demande supportes (UI + backend)
+				- [Entites : type_demande] Supporter :
+					- NOUVEAU_TITRE
+					- DUPLICATA_CARTE (via DUPLICATA + sous-type)
+					- TRANSFERT_VISA (via DUPLICATA + sous-type)
+					- LES_DEUX (transfert + duplicata)
+				- [Entites : formulaire] Le type choisi doit piloter les champs affiches.
+
+			DUPLICATA : sous-type + indicateur antecedents
+				- [Entites : formulaire] Si type=DUPLICATA, afficher sous-type obligatoire : TRANSFERT_VISA, DUPLICATA_CARTE, LES_DEUX.
+				- [Entites : formulaire] Si type=DUPLICATA, afficher avec_donnees_anterieures obligatoire (oui/non).
+
+			Avec donnees anterieures
+				- [Entites : recherche] Rechercher via numero visa, numero carte resident, ou numero passeport, La recherche automatique sert au pre-remplissage et a l'aide, pas a decider seule le scenario
+                Avant de continuer, le systeme verifie dans les donnees existantes si la meme personne est deja enregistree.
+				- [Entites : formulaire] Si trouve, pre-remplir les donnees pour eviter ressaisie complete.
+				- [Entites : saisie] Les champs affiches doivent reduire les erreurs de ressaisie sur infos deja connues.
+
+			Sans donnees anterieures
+				- [Entites : formulaire] Exiger saisie complete (comme premiere saisie).
+				- [Entites : scenario] Traiter comme nouvelle saisie complete avec objectif metier duplicata/transfert.
+                  Dans le cas sans donnees anterieures, la demande est saisie completement puis rattachee au meme demandeur metier via la demande base creee.
+				- [Entites : traçabilite] Rendre le mode sans donnees anterieures tracable (audit + affichage dossier).
+
+            L’utilisateur coche le cas :
+                avec données antérieures
+                sans données antérieures
+                La recherche automatique sert seulement d’aide :
+
+                si l’utilisateur a coché avec données antérieures, le système peut chercher et préremplir si possible
+                si rien n’est trouvé, on peut afficher un message ou laisser l’utilisateur corriger
+                si l’utilisateur a coché sans données antérieures, on ne cherche pas pour décider le scénario, on part directement sur la saisie complète
+
+                Le choix avec/sans données antérieures est piloté par une case à cocher. La recherche dans les données existantes sert uniquement à préremplir et à faciliter la saisie, pas à déterminer à elle seule le scénario.
+
+		B) Statuts, blocages, modification
+			Regles obligatoires d'enregistrement
+				- [Entites : pieces, validation] Si obligatoire manquant -> enregistrement refuse.
+				- [Entites : pieces, statut] Si obligatoires OK et optionnelles manquantes -> enregistrement autorise + statut DOSSIER_CREE.
+				- [Entites : statut] Optionnelles manquantes ne bloquent pas DOSSIER_CREE.
+				- [Entites : statut] Optionnelles manquantes bloquent passage au statut suivant.
+
+			Regles de modification
+				- [Entites : demande, statut] Modification autorisee tant que statut DOSSIER_CREE.
+				- [Entites : demande, statut] Apres statut superieur, modification refusee.
+				- [Entites : UI] Creer page de modification pour demandes en statut DOSSIER_CREE.
+
+			Alertes utilisateur
+				- [Entites : UI] Afficher alertes claires : obligatoire manquant, optionnelle manquante, complet.
+
+		C) PDF de controle / recepisse
+			- [Entites : recu] Generer PDF apres saisie.
+			- [Entites : contenu PDF] Doit contenir minimum :
+				- etat civil
+				- informations passeport
+				- informations visa
+				- liste justificatifs recus/coches
+			- [Entites : workflow] Si erreur detectee apres lecture PDF, retour modification, statut reste DOSSIER_CREE.
+
+		D) Sidebar gauche (UI demandee TL)
+			- [Entites : navigation UI] Ajouter menu sidebar gauche avec sections :
+				- nouveau titre
+				- duplicata
+					- avec donnees anterieures
+						- duplicata carte resident
+						- transfert visa
+						- les deux
+					- sans donnees anterieures
+						- duplicata carte resident
+						- transfert visa
+						- les deux
+			- [Entites : design] Theme sombre et elegant, pas flashy.
+			- [Entites : design] Interdiction de couleurs degradees.
+			- [Entites : design] Conserver ergonomie actuelle de formulaire.jsp.
+            - affichage site coté admin avec sidebar 
+            1. Affichage “source de demande” dans l’écran dossier
+                . Afficher “Demande actuelle”
+                . Afficher “Basée sur la demande source #X”
+                . Afficher un lien/remontée de chaîne des demandes
+                . Vous avez la règle métier, mais pas toujours l’affichage explicite.
+            2. Message UI quand “avec données antérieures” est coché mais rien trouvé
+                . Actuellement, la recherche/préremplissage est bien notée
+                . Mais le message utilisateur explicite “aucun antécédent trouvé, corriger ou basculer en sans données antérieures” n’est pas toujours écrit clairement
+            3. Affichage de la complétude du dossier dans la vue dossier
+                . Vous avez les alertes (obligatoire/optionnelle/complet)
+                . Il manque parfois le fait de l’afficher aussi en synthèse dossier (pas seulement au submit du formulaire).
+
+            4. Affichage du verrouillage de modification après statut supérieur
+                . La règle existe
+                . Mais le message UI explicite “Modification non autorisée après DOSSIER_CREE” n’est pas toujours demandé noir sur blanc.
+            
+            5. Affichage de l’historique de statuts (timeline/liste)
+                . L’historisation est bien prévue en backend
+                . L’affichage de cet historique à l’écran n’est pas toujours explicitement exigé dans le To-Do.
+
+            6. Affichage du mode choisi “avec/sans données antérieures” dans le dossier
+                . Le choix par case est bien présent dans le formulaire
+                . Mais l’affichage récapitulatif de ce choix dans le détail dossier manque souvent.
+
+            - pour l'affichage ou choix pour le cas de "avec donnees anterieurs" ou "sans donnees anterieurs" => cochable  
+            - Le choix avec/sans donnees anterieures est piloté par case a cocher.
+
+		E)
+			- [Entites : metier] Duplicata/transfert doit toujours avoir id_demande_source renseigne.
+            Avec antecedents : id_demande_source = demande source existante.
+            Sans antecedents : id_demande_source = demande base generee automatiquement
+
+            Sprint 2: implementer le refus avant SCAN_TERMINE uniquement (statut REFUSE + logique associee).
+            Les autres cas de refus metier avances seront traites en Sprint 3.
