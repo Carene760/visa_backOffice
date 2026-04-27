@@ -48,11 +48,7 @@ public class Demande {
     @Column(name = "date_traitement")
     private LocalDateTime dateTraitement;
 
-    @Column(name = "date_expiration_demande")
-    private LocalDate dateExpirationDemande;
-
     @Column(name = "date_modification")
     private LocalDateTime dateModification;
 }
-    private LocalDateTime dateModification;
-}
+ 

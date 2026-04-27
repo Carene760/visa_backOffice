@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.teamlead.DTO.ValidationErrorDTO;
 import com.teamlead.Model.Demande;
 import com.teamlead.Model.HistoriqueStatutDemande;
 import com.teamlead.Model.StatutDemande;
@@ -24,24 +25,35 @@ public class DemandeStatusService {
      * Initialise une demande avec le statut "ENREGISTREE"
      * 
      * Le statut doit être créé dans init.sql par DEV1
-     * Si le statut n'existe pas en base → Lance une exception (configuration incorrecte)
+     * Si le statut n'existe pas en base → Retourne une erreur
      */
-    public void initializeDemandeStatus(Demande demande) {
-        // Chercher le statut "ENREGISTREE" en base
-        StatutDemande statutEnregistree = statutDemandeRepository.findByLibelle("ENREGISTREE");
+    public ValidationErrorDTO initializeDemandeStatus(Demande demande) {
+        ValidationErrorDTO result = new ValidationErrorDTO(true, "Statut initialisé avec succès");
+        
+        // Chercher le statut "DOSSIER_CREE" en base
+        StatutDemande statutEnregistree = statutDemandeRepository.findByLibelle("DOSSIER_CREE");
 
         if (statutEnregistree == null) {
-            throw new RuntimeException(
-                "Erreur de configuration: le statut 'ENREGISTREE' n'existe pas en base. "
-                + "Assurez-vous que init.sql a été exécuté correctement par DEV1.");
+            result.setSuccess(false);
+            result.setMessage("Erreur de configuration du système");
+            result.addError("Le statut 'DOSSIER_CREE' n'existe pas en base de données. Contactez l'administrateur du système.");
+            return result;
         }
 
-        // Enregistrer dans l'historique
-        HistoriqueStatutDemande historique = new HistoriqueStatutDemande();
-        historique.setDemande(demande);
-        historique.setStatut(statutEnregistree);
-        historique.setDateChangement(LocalDateTime.now());
-        historiqueStatutDemandeRepository.save(historique);
+        try {
+            // Enregistrer dans l'historique
+            HistoriqueStatutDemande historique = new HistoriqueStatutDemande();
+            historique.setDemande(demande);
+            historique.setStatut(statutEnregistree);
+            historique.setDateChangement(LocalDateTime.now());
+            historiqueStatutDemandeRepository.save(historique);
+        } catch (Exception e) {
+            result.setSuccess(false);
+            result.setMessage("Erreur lors de l'enregistrement du statut");
+            result.addError("Impossible d'enregistrer le changement de statut: " + e.getMessage());
+        }
+        
+        return result;
     }
 }
 

@@ -12,6 +12,7 @@ public interface TypeDocumentRepository extends JpaRepository<TypeDocument, Inte
     /**
      * Récupère les documents obligatoires
      */
+    
     List<TypeDocument> findByObligatoireTrue();
     
     /**
