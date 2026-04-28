@@ -88,13 +88,12 @@ public class DemandeStatusService {
             historiqueStatutDemandeRepository.save(historique);
 
             // Créer un événement d'audit
-            TypeEvenement typeEvenement = typeEvenementRepository.findByLibelle("SCAN_TERMINE");
+            TypeEvenement typeEvenement = typeEvenementRepository.findByCode("SCAN_TERMINE");
             if (typeEvenement != null) {
                 JournalActivite journal = new JournalActivite();
-                journal.setDemande(demande);
+                journal.setDemandeur(demande.getDemandeur());
                 journal.setTypeEvenement(typeEvenement);
-                journal.setDescription("Transition vers SCAN_TERMINE");
-                journal.setDateActivite(LocalDateTime.now());
+                journal.setDateAction(LocalDateTime.now());
                 journalActiviteRepository.save(journal);
             }
 

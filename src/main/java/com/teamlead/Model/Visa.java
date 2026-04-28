@@ -46,7 +46,6 @@ public class Visa {
     @JoinColumn(name = "id_demande", nullable = false, foreignKey = @ForeignKey(name = "visa_id_demande_fkey"))
     private Demande demande;
 
-
     @Column(name = "date_emission")
     private LocalDateTime dateEmission;
 
