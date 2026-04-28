@@ -1,0 +1,150 @@
+package com.teamlead.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.teamlead.Model.Demande;
+import com.teamlead.Model.PieceAFournir;
+import com.teamlead.Model.TypeDocument;
+import com.teamlead.Repository.DemandeRepository;
+import com.teamlead.Repository.DocumentScanRepository;
+import com.teamlead.Repository.PieceAFournirRepository;
+
+@Service
+public class DocumentScanValidationService {
+
+    @Autowired
+    private PieceAFournirRepository pieceAFournirRepository;
+
+    @Autowired
+    private DocumentScanRepository documentScanRepository;
+
+    @Autowired
+    private DemandeRepository demandeRepository;
+
+    /**
+     * Vérifie tous les documents obligatoires ont au moins 1 scan
+     */
+    public List<String> verifierTousLesObligatoiresScannes(Integer idDemande) {
+        List<String> manquants = new ArrayList<>();
+
+        Demande demande = demandeRepository.findById(idDemande)
+                .orElseThrow(() -> new RuntimeException("Demande non trouvée"));
+
+        List<PieceAFournir> pieces = pieceAFournirRepository.findByDemandeId(idDemande);
+
+        for (PieceAFournir piece : pieces) {
+            TypeDocument typeDoc = piece.getTypeDocument();
+            
+            // Vérifier si c'est obligatoire
+            if (typeDoc != null && isDocumentObligatoire(typeDoc)) {
+                Integer countScans = documentScanRepository.countByIdPieceAFournir(piece.getId());
+                if (countScans == null || countScans == 0) {
+                    manquants.add(typeDoc.getLibelle() != null ? typeDoc.getLibelle() : "Document sans libellé");
+                }
+            }
+        }
+
+        return manquants;
+    }
+
+    /**
+     * Vérifie la plétude du dossier (complet/partiel/vide)
+     */
+    public String verifierCompleteudeDossierScan(Integer idDemande) {
+        Demande demande = demandeRepository.findById(idDemande)
+                .orElseThrow(() -> new RuntimeException("Demande non trouvée"));
+
+        List<PieceAFournir> pieces = pieceAFournirRepository.findByDemandeId(idDemande);
+
+        int totalObligatoires = 0;
+        int scannedObligatoires = 0;
+        int totalOptionnels = 0;
+        int scannedOptionnels = 0;
+
+        for (PieceAFournir piece : pieces) {
+            TypeDocument typeDoc = piece.getTypeDocument();
+            Integer countScans = documentScanRepository.countByIdPieceAFournir(piece.getId());
+            boolean hasScans = countScans != null && countScans > 0;
+
+            if (typeDoc != null && isDocumentObligatoire(typeDoc)) {
+                totalObligatoires++;
+                if (hasScans) {
+                    scannedObligatoires++;
+                }
+            } else {
+                totalOptionnels++;
+                if (hasScans) {
+                    scannedOptionnels++;
+                }
+            }
+        }
+
+        // Détermine le statut
+        if (scannedObligatoires == totalObligatoires && scannedOptionnels == totalOptionnels) {
+            return "COMPLET";
+        } else if (scannedObligatoires > 0 || scannedOptionnels > 0) {
+            return "PARTIEL";
+        } else {
+            return "VIDE";
+        }
+    }
+
+    /**
+     * Valide avant transition vers SCAN_TERMINE
+     * Tous les obligatoires doivent être scannés
+     */
+    public String validerAvantTransitionScanTermine(Integer idDemande) {
+        List<String> manquants = verifierTousLesObligatoiresScannes(idDemande);
+
+        if (!manquants.isEmpty()) {
+            return "Erreur: Documents obligatoires manquants: " + String.join(", ", manquants);
+        }
+
+        return "";
+    }
+
+    /**
+     * Détermine si un document est obligatoire
+     * Par défaut, tous les documents sont obligatoires sauf indication contraire
+     */
+    private boolean isDocumentObligatoire(TypeDocument typeDoc) {
+        // À adapter selon votre logique métier
+        // Pour l'instant, on considère tous les documents comme obligatoires
+        return true;
+    }
+
+    /**
+     * Retourne un résumé de la plétude
+     */
+    public String getResumePlétude(Integer idDemande) {
+        List<PieceAFournir> pieces = pieceAFournirRepository.findByDemandeId(idDemande);
+
+        int totalObligatoires = 0;
+        int scannedObligatoires = 0;
+        int totalOptionnels = 0;
+        int scannedOptionnels = 0;
+
+        for (PieceAFournir piece : pieces) {
+            TypeDocument typeDoc = piece.getTypeDocument();
+            Integer countScans = documentScanRepository.countByIdPieceAFournir(piece.getId());
+            boolean hasScans = countScans != null && countScans > 0;
+
+            if (typeDoc != null && isDocumentObligatoire(typeDoc)) {
+                totalObligatoires++;
+                if (hasScans) {
+                    scannedObligatoires++;
+                }
+            } else {
+                totalOptionnels++;
+                if (hasScans) {
+                    scannedOptionnels++;
+                }
+            }
+        }
+
+        return String.format("Obligatoires: %d/%d, Optionnels: %d/%d", 
+            scannedObligatoires, totalObligatoires, scannedOptionnels, totalOptionnels);
+    }
+}

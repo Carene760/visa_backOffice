@@ -3,9 +3,11 @@ package com.teamlead.Controller;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import com.teamlead.DTO.*;
 import com.teamlead.Exception.ValidationException;
 import com.teamlead.Model.*;
@@ -31,6 +33,18 @@ public class DemandeController {
 
     @Autowired
     private DemandeService demandeService;
+
+    @Autowired
+    private DocumentScanService documentScanService;
+
+    @Autowired
+    private DocumentScanValidationService documentScanValidationService;
+
+    @Autowired
+    private DemandeStatusService demandeStatusService;
+
+    @Autowired
+    private DemandeRepository demandeRepository;
 
     @GetMapping("/nouveau")
     public String afficherFormulaire(Model model) {
@@ -144,5 +158,102 @@ public class DemandeController {
     @GetMapping("/confirmation")
     public String afficherConfirmation() {
         return "demande/confirmation";
+    }
+
+    // ============ ENDPOINTS SPRINT 3 - DOCUMENT SCANNING ============
+
+    /**
+     * Affiche le détail d'une demande avec ses documents
+     */
+    @GetMapping("/{id}/detail")
+    public String afficherDetail(
+            @PathVariable Integer id,
+            Model model) {
+        try {
+            Demande demande = demandeRepository.findById(id)
+                    .orElseThrow(() -> new ValidationException("Demande non trouvée",
+                            List.of("La demande " + id + " n'existe pas")));
+            
+            String resumePlétude = documentScanValidationService.getResumePlétude(id);
+            String completude = documentScanValidationService.verifierCompleteudeDossierScan(id);
+            
+            model.addAttribute("demande", demande);
+            model.addAttribute("resumePlétude", resumePlétude);
+            model.addAttribute("completude", completude);
+            
+            return "demande/detail";
+        } catch (ValidationException e) {
+            model.addAttribute("erreur", e.getMessage());
+            return "erreur";
+        }
+    }
+
+    /**
+     * Liste tous les scans pour une demande (API REST)
+     */
+    @GetMapping("/{id}/scans")
+    @ResponseBody
+    public ResponseEntity<List<DocumentScan>> listerScans(@PathVariable Integer id) {
+        List<DocumentScan> scans = documentScanService.listerScansPourDemande(id);
+        return ResponseEntity.ok(scans);
+    }
+
+    /**
+     * Upload un fichier pour une pièce spécifique
+     */
+    @PostMapping("/{idDemande}/piece/{idPiece}/upload")
+    @ResponseBody
+    public ResponseEntity<ValidationErrorDTO> uploadFichier(
+            @PathVariable Integer idDemande,
+            @PathVariable Integer idPiece,
+            @RequestParam("fichier") MultipartFile fichier,
+            @RequestParam(value = "numeroPage", required = false) Integer numeroPage) {
+        
+        if (numeroPage == null) {
+            numeroPage = 1;
+        }
+        
+        ValidationErrorDTO result = documentScanService.sauvegarderFichier(
+                fichier, idPiece, numeroPage);
+        
+        if (result.isSuccess()) {
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.badRequest().body(result);
+        }
+    }
+
+    /**
+     * Supprime un scan de document
+     */
+    @DeleteMapping("/{idDemande}/scan/{idDocumentScan}")
+    @ResponseBody
+    public ResponseEntity<ValidationErrorDTO> supprimerScan(
+            @PathVariable Integer idDemande,
+            @PathVariable Integer idDocumentScan) {
+        
+        ValidationErrorDTO result = documentScanService.supprimerFichierScan(idDocumentScan);
+        
+        if (result.isSuccess()) {
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.badRequest().body(result);
+        }
+    }
+
+    /**
+     * Transition vers SCAN_TERMINE (finalise la saisie de documents)
+     */
+    @PostMapping("/{id}/scan/terminer")
+    @ResponseBody
+    public ResponseEntity<ValidationErrorDTO> terminerScan(@PathVariable Integer id) {
+        
+        ValidationErrorDTO result = demandeStatusService.transitionnerVersScanTermine(id);
+        
+        if (result.isSuccess()) {
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.badRequest().body(result);
+        }
     }
 }

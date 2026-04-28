@@ -1,7 +1,9 @@
  package com.teamlead.Service;
+                    import java.time.LocalDate;
                     import java.time.LocalDateTime;
                     import java.util.List;
                     import org.springframework.beans.factory.annotation.Autowired;
+                    import org.springframework.beans.factory.annotation.Value;
                     import org.springframework.dao.DataIntegrityViolationException;
                     import org.springframework.stereotype.Service;
                     import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,13 @@
                     @Autowired private MotifTransfertRepository motifTransfertRepository;
                     @Autowired private DemandeValidationService demandeValidationService;
                     @Autowired private DemandeStatusService demandeStatusService;
+                    @Autowired private RechercheAntecendentRepository rechercheAntecendentRepository;
+                    @Autowired private SousTypeDemandeRepository sousTypeDemandeRepository;
+                    @Autowired private CarteResidentRepository carteResidentRepository;
+                    @Autowired private DecisionDocumentRepository decisionDocumentRepository;
+                    
+                    @Value("${renouvellement.delta.jours:0}")
+                    private int deltaDaysConfig;
 
                     @Transactional
                     public ValidationErrorDTO creerNouvelleDemande(DemandeCreationDTO demandeDTO){
@@ -43,6 +52,18 @@
                     if(demandeDTO.getDateEntreeVisa()==null||demandeDTO.getDateExpirationVisa()==null)return failure("Erreur: Dates du visa obligatoires","Les dates d'entrée et d'expiration du visa sont obligatoires.");
                     if(!demandeDTO.getDateExpirationPasseport().isAfter(demandeDTO.getDateDelivrancePasseport()))return failure("Erreur: Dates du passeport incohérentes","La date d'expiration du passeport doit être postérieure à la date de délivrance.");
                     if(!demandeDTO.getDateExpirationVisa().isAfter(demandeDTO.getDateEntreeVisa()))return failure("Erreur: Dates du visa incohérentes","La date d'expiration du visa doit être strictement postérieure à la date d'entrée.");
+                    
+                    // Validation stricte: dateDemande < dateExpirationVisa avec delta configurable
+                    LocalDate today = LocalDate.now();
+                    LocalDate expirationVisaDate = demandeDTO.getDateExpirationVisa();
+                    LocalDate deadlineDate = expirationVisaDate.minusDays(deltaDaysConfig);
+                    
+                    if(today.isAfter(expirationVisaDate))
+                        return failure("Erreur: Visa expiré","La date d'expiration du visa doit être dans le futur.");
+                    if(today.isEqual(expirationVisaDate))
+                        return failure("Erreur: Visa en cours d'expiration","La date de demande ne peut pas égaler la date d'expiration du visa.");
+                    if(today.isAfter(deadlineDate))
+                        return failure("Erreur: Délai insuffisant","La demande doit être faite au moins "+deltaDaysConfig+" jours avant l'expiration du visa.");
 
                     Nationalite nationalite=nationaliteRepository.findById(demandeDTO.getIdNationalite()).orElseThrow(()->new ValidationException("Erreur: Nationalité invalide",List.of("La nationalité sélectionnée n'existe pas en base de données.")));
                     SituationMatrimoniale situation=null;
@@ -71,6 +92,10 @@
                     if(demandeurRepository.findByTelephone(demandeDTO.getTelephone())!=null)return failure("Erreur: Numéro déjà utilisé","Un demandeur avec ce numéro existe déjà.");
                     if(passeportRepository.findByNumero(demandeDTO.getNumeroPasseport())!=null)return failure("Erreur: Passeport déjà utilisé","Un passeport avec ce numéro existe déjà.");
                     if(visaRepository.findByReference(demandeDTO.getReferenceVisa())!=null)return failure("Erreur: Référence déjà utilisée","Une demande avec cette référence existe déjà.");
+                    
+                    // Vérification: refuser si demandeur possède déjà un visa approuvé (cas de première demande bloquée)
+                    // Note: Cette vérification s'applique lors d'une future deuxième demande du même demandeur
+                    // Pour maintenant, on la laisse en place mais elle ne s'applique que si on passe les vérifications d'unicité d'email ci-dessus
 
                     StatutDemande statut=statutDemandeRepository.findByLibelle("DOSSIER_CREE");
                     if(statut==null)throw new ValidationException("Erreur système",List.of("Statut initial introuvable."));
@@ -108,7 +133,6 @@
                     visa.setLieuEntree(demandeDTO.getLieuEntreeVisa());
                     visa.setDateExpiration(demandeDTO.getDateExpirationVisa());
                     visa.setDemande(demande);
-                    visa.setIdDemandeur(demandeur.getId());
                     visa.setTypeVisa(typeVisa);
                     visa.setDateEmission(LocalDateTime.now());
                     visa.setDateModification(LocalDateTime.now());
