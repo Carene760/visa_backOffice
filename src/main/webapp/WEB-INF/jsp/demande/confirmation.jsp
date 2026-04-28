@@ -100,7 +100,7 @@
 </head>
 <body>
     <div class="container">
-        <div class="success-icon">✅</div>
+        <div class="success-icon"></div>
         <h1>Demande Enregistrée avec Succès</h1>
 
         <div class="message">

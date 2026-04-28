@@ -1,361 +1,165 @@
-package com.teamlead.Service;
+ package com.teamlead.Service;
+                    import java.time.LocalDateTime;
+                    import java.util.List;
+                    import org.springframework.beans.factory.annotation.Autowired;
+                    import org.springframework.dao.DataIntegrityViolationException;
+                    import org.springframework.stereotype.Service;
+                    import org.springframework.transaction.annotation.Transactional;
+                    import com.teamlead.DTO.DemandeCreationDTO;
+                    import com.teamlead.DTO.ValidationErrorDTO;
+                    import com.teamlead.Exception.ValidationException;
+                    import com.teamlead.Model.*;
+                    import com.teamlead.Repository.*;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+                    @Service
+                    public class DemandeService{
+                    @Autowired private DemandeRepository demandeRepository;
+                    @Autowired private DemandeurRepository demandeurRepository;
+                    @Autowired private PieceAFournirRepository pieceAFournirRepository;
+                    @Autowired private TypeDocumentRepository typeDocumentRepository;
+                    @Autowired private StatutDemandeRepository statutDemandeRepository;
+                    @Autowired private NationaliteRepository nationaliteRepository;
+                    @Autowired private SituationMatrimonialeRepository situationMatrimonialeRepository;
+                    @Autowired private TypeMotifRepository typeMotifRepository;
+                    @Autowired private TypeDemandeRepository typeDemandeRepository;
+                    @Autowired private PasseportRepository passeportRepository;
+                    @Autowired private VisaRepository visaRepository;
+                    @Autowired private PasseportVisaRepository passeportVisaRepository;
+                    @Autowired private TypeVisaRepository typeVisaRepository;
+                    @Autowired private TypeEvenementRepository typeEvenementRepository;
+                    @Autowired private JournalActiviteRepository journalActiviteRepository;
+                    @Autowired private MotifTransfertRepository motifTransfertRepository;
+                    @Autowired private DemandeValidationService demandeValidationService;
+                    @Autowired private DemandeStatusService demandeStatusService;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+                    @Transactional
+                    public ValidationErrorDTO creerNouvelleDemande(DemandeCreationDTO demandeDTO){
+                    ValidationErrorDTO validation=new ValidationErrorDTO(true,"Demande créée avec succès");
+                    if(demandeDTO.getIdTypeMotif()==null)return failure("Erreur: Type de motif obligatoire","Vous devez sélectionner un statut du visa demandé.");
+                    if(demandeDTO.getIdTypeDemande()==null)return failure("Erreur: Type de demande obligatoire","Vous devez sélectionner un type de demande.");
+                    if(demandeDTO.getIdNationalite()==null)return failure("Erreur: Nationalité obligatoire","Vous devez sélectionner une nationalité.");
+                    if(demandeDTO.getDateNaissance()==null)return failure("Erreur: Date de naissance obligatoire","La date de naissance est obligatoire.");
+                    if(demandeDTO.getDateDelivrancePasseport()==null||demandeDTO.getDateExpirationPasseport()==null)return failure("Erreur: Dates du passeport obligatoires","Les dates de délivrance et d'expiration du passeport sont obligatoires.");
+                    if(demandeDTO.getDateEntreeVisa()==null||demandeDTO.getDateExpirationVisa()==null)return failure("Erreur: Dates du visa obligatoires","Les dates d'entrée et d'expiration du visa sont obligatoires.");
+                    if(!demandeDTO.getDateExpirationPasseport().isAfter(demandeDTO.getDateDelivrancePasseport()))return failure("Erreur: Dates du passeport incohérentes","La date d'expiration du passeport doit être postérieure à la date de délivrance.");
+                    if(!demandeDTO.getDateExpirationVisa().isAfter(demandeDTO.getDateEntreeVisa()))return failure("Erreur: Dates du visa incohérentes","La date d'expiration du visa doit être strictement postérieure à la date d'entrée.");
 
-import com.teamlead.DTO.DemandeCreationDTO;
-import com.teamlead.DTO.ValidationErrorDTO;
-import com.teamlead.Model.Demande;
-import com.teamlead.Model.Demandeur;
-import com.teamlead.Model.JournalActivite;
-import com.teamlead.Model.MotifTransfert;
-import com.teamlead.Model.Passeport;
-import com.teamlead.Model.PasseportVisa;
-import com.teamlead.Model.PieceAFournir;
-import com.teamlead.Model.StatutDemande;
-import com.teamlead.Model.TypeEvenement;
-import com.teamlead.Model.TypeMotif;
-import com.teamlead.Model.TypeDemande;
-import com.teamlead.Model.TypeVisa;
-import com.teamlead.Model.Visa;
-import com.teamlead.Model.Nationalite;
-import com.teamlead.Model.SituationMatrimoniale;
-import com.teamlead.Repository.DemandeRepository;
-import com.teamlead.Repository.DemandeurRepository;
-import com.teamlead.Repository.JournalActiviteRepository;
-import com.teamlead.Repository.MotifTransfertRepository;
-import com.teamlead.Repository.PasseportVisaRepository;
-import com.teamlead.Repository.PieceAFournirRepository;
-import com.teamlead.Repository.TypeEvenementRepository;
-import com.teamlead.Repository.TypeDocumentRepository;
-import com.teamlead.Repository.TypeVisaRepository;
-import com.teamlead.Repository.VisaRepository;
-import com.teamlead.Repository.StatutDemandeRepository;
-import com.teamlead.Repository.NationaliteRepository;
-import com.teamlead.Repository.PasseportRepository;
-import com.teamlead.Repository.SituationMatrimonialeRepository;
-import com.teamlead.Repository.TypeMotifRepository;
-import com.teamlead.Repository.TypeDemandeRepository;
+                    Nationalite nationalite=nationaliteRepository.findById(demandeDTO.getIdNationalite()).orElseThrow(()->new ValidationException("Erreur: Nationalité invalide",List.of("La nationalité sélectionnée n'existe pas en base de données.")));
+                    SituationMatrimoniale situation=null;
+                    if(demandeDTO.getIdSituationMatrimoniale()!=null)situation=situationMatrimonialeRepository.findById(demandeDTO.getIdSituationMatrimoniale()).orElseThrow(()->new ValidationException("Erreur: Situation matrimoniale invalide",List.of("La situation matrimoniale sélectionnée n'existe pas en base de données.")));
 
-@Service
-public class DemandeService {
+                    Demandeur demandeur=new Demandeur();
+                    demandeur.setNom(demandeDTO.getNom());
+                    demandeur.setPrenom(demandeDTO.getPrenom());
+                    demandeur.setNomNaissance(demandeDTO.getNomNaissance());
+                    demandeur.setEmail(demandeDTO.getEmail());
+                    demandeur.setTelephone(demandeDTO.getTelephone());
+                    demandeur.setDateNaissance(demandeDTO.getDateNaissance());
+                    demandeur.setLieuNaissance(demandeDTO.getLieuNaissance());
+                    demandeur.setAdresseMadagascar(demandeDTO.getAdresseMadagascar());
+                    demandeur.setNationalite(nationalite);
+                    demandeur.setSituationMatrimoniale(situation);
+                    demandeur.setDateCreation(LocalDateTime.now());
 
-    @Autowired
-    private DemandeRepository demandeRepository;
+                    ValidationErrorDTO validationDemandeur=demandeValidationService.validerDemandeur(demandeur);
+                    if(!validationDemandeur.isSuccess())return buildFailure("Erreurs de validation du demandeur",validationDemandeur.getErrors());
 
-    @Autowired
-    private DemandeurRepository demandeurRepository;
+                    ValidationErrorDTO validationDocuments=demandeValidationService.validerDocumentsObligatoires(demandeDTO.getPiecesPresentes(),demandeDTO.getIdTypeMotif());
+                    if(!validationDocuments.isSuccess())return buildFailure("Documents obligatoires manquants",validationDocuments.getErrors());
 
-    @Autowired
-    private PieceAFournirRepository pieceAFournirRepository;
+                    if(demandeurRepository.findByEmail(demandeDTO.getEmail())!=null)return failure("Erreur: Email déjà utilisé","Un demandeur avec cet email existe déjà.");
+                    if(demandeurRepository.findByTelephone(demandeDTO.getTelephone())!=null)return failure("Erreur: Numéro déjà utilisé","Un demandeur avec ce numéro existe déjà.");
+                    if(passeportRepository.findByNumero(demandeDTO.getNumeroPasseport())!=null)return failure("Erreur: Passeport déjà utilisé","Un passeport avec ce numéro existe déjà.");
+                    if(visaRepository.findByReference(demandeDTO.getReferenceVisa())!=null)return failure("Erreur: Référence déjà utilisée","Une demande avec cette référence existe déjà.");
 
-    @Autowired
-    private TypeDocumentRepository typeDocumentRepository;
+                    StatutDemande statut=statutDemandeRepository.findByLibelle("DOSSIER_CREE");
+                    if(statut==null)throw new ValidationException("Erreur système",List.of("Statut initial introuvable."));
 
-    @Autowired
-    private StatutDemandeRepository statutDemandeRepository;
+                    TypeMotif typeMotif=typeMotifRepository.findById(demandeDTO.getIdTypeMotif()).orElseThrow(()->new ValidationException("Erreur: Type motif invalide",List.of("Type motif inexistant.")));
+                    TypeDemande typeDemande=typeDemandeRepository.findById(demandeDTO.getIdTypeDemande()).orElseThrow(()->new ValidationException("Erreur: Type demande invalide",List.of("Type demande inexistant.")));
+                    TypeVisa typeVisa=typeVisaRepository.findNormalizedByLibelle("TRANSFORMABLE").or(()->typeVisaRepository.findFirstByLibelleIgnoreCase("TRANSFORMABLE")).orElseThrow(()->new ValidationException("Erreur système",List.of("Type visa introuvable.")));
 
-    @Autowired
-    private NationaliteRepository nationaliteRepository;
+                    TypeEvenement typeEvenement=typeEvenementRepository.findByCode("CREATION DEMANDE");
+                    if(typeEvenement==null)typeEvenement=typeEvenementRepository.findByCode("CREATION_DEMANDE");
+                    if(typeEvenement==null)throw new ValidationException("Erreur système",List.of("Type événement introuvable."));
 
-    @Autowired
-    private SituationMatrimonialeRepository situationMatrimonialeRepository;
+                    try{
+                    demandeur=demandeurRepository.save(demandeur);
+                    Demande demande=new Demande();
+                    demande.setDemandeur(demandeur);
+                    demande.setDateDemande(LocalDateTime.now());
+                    demande.setStatutDemande(statut);
+                    demande.setDateTraitement(LocalDateTime.now());
+                    demande.setTypeMotif(typeMotif);
+                    demande.setTypeDemande(typeDemande);
+                    demande=demandeRepository.save(demande);
 
-    @Autowired
-    private TypeMotifRepository typeMotifRepository;
+                    Passeport passeport=new Passeport();
+                    passeport.setDemandeur(demandeur);
+                    passeport.setNumero(demandeDTO.getNumeroPasseport());
+                    passeport.setDateDelivrance(demandeDTO.getDateDelivrancePasseport());
+                    passeport.setDateExpiration(demandeDTO.getDateExpirationPasseport());
+                    passeport.setDateCreation(LocalDateTime.now());
+                    passeport=passeportRepository.save(passeport);
 
-    @Autowired
-    private TypeDemandeRepository typeDemandeRepository;
+                    com.teamlead.Model.Visa visa=new com.teamlead.Model.Visa();
+                    visa.setReference(demandeDTO.getReferenceVisa());
+                    visa.setDateEntree(demandeDTO.getDateEntreeVisa());
+                    visa.setLieuEntree(demandeDTO.getLieuEntreeVisa());
+                    visa.setDateExpiration(demandeDTO.getDateExpirationVisa());
+                    visa.setDemande(demande);
+                    visa.setIdDemandeur(demandeur.getId());
+                    visa.setTypeVisa(typeVisa);
+                    visa.setDateEmission(LocalDateTime.now());
+                    visa.setDateModification(LocalDateTime.now());
+                    visa=visaRepository.save(visa);
 
-    @Autowired
-    private PasseportRepository passeportRepository;
+                    MotifTransfert motifTransfert=motifTransfertRepository.findFirstByOrderByIdAsc().orElseGet(()->{MotifTransfert m=new MotifTransfert();m.setLibelle("CREATION DEMANDE");return motifTransfertRepository.save(m);});
 
-    @Autowired
-    private VisaRepository visaRepository;
+                    PasseportVisa pv=new PasseportVisa();
+                    pv.setPasseport(passeport);
+                    pv.setVisa(visa);
+                    pv.setDateAssociation(java.time.LocalDate.now());
+                    pv.setMotifTransfert(motifTransfert);
+                    pv.setDateCreation(LocalDateTime.now());
+                    passeportVisaRepository.save(pv);
 
-    @Autowired
-    private PasseportVisaRepository passeportVisaRepository;
+                    JournalActivite journal=new JournalActivite();
+                    journal.setDemandeur(demandeur);
+                    journal.setTypeEvenement(typeEvenement);
+                    journal.setDateAction(LocalDateTime.now());
+                    journalActiviteRepository.save(journal);
 
-    @Autowired
-    private TypeVisaRepository typeVisaRepository;
-
-    @Autowired
-    private TypeEvenementRepository typeEvenementRepository;
-
-    @Autowired
-    private JournalActiviteRepository journalActiviteRepository;
-
-    @Autowired
-    private MotifTransfertRepository motifTransfertRepository;
-
-    @Autowired
-    private DemandeValidationService demandeValidationService;
-
-    @Autowired
-    private DemandeStatusService demandeStatusService;
-
-    /**
-     * Crée une nouvelle demande avec validation complète
-     * 
-     * Étapes:
-     * 1. Valide tous les champs obligatoires du demandeur
-     * 2. Valide les documents obligatoires
-     * 3. Charger les entités associées (Nationalité, SituationMatrimoniale, Statut)
-     * 4. Crée le demandeur en base
-     * 5. Crée la demande en base avec statut
-     * 6. Crée les pièces à fournir
-     * 7. Enregistre dans l'historique
-     * 
-     * Retourne: ValidationErrorDTO avec succès et ID de la demande créée
-     */
-    @Transactional
-    public ValidationErrorDTO creerNouvelleDemande(DemandeCreationDTO demandeDTO) {
-        ValidationErrorDTO validation = new ValidationErrorDTO(true, "Demande créée avec succès");
-
-        try {
-            // 1. Créer l'objet demandeur
-            Demandeur demandeur = new Demandeur();
-            demandeur.setNom(demandeDTO.getNom());
-            demandeur.setPrenom(demandeDTO.getPrenom());
-            demandeur.setNomNaissance(demandeDTO.getNomNaissance());
-            Demandeur existant = demandeurRepository.findByEmail(demandeDTO.getEmail());
-            if (existant != null) {
-                throw new IllegalArgumentException("Email déjà utilisé");
-            }
-            demandeur.setEmail(demandeDTO.getEmail());
-            Demandeur existantTel = demandeurRepository.findByTelephone(demandeDTO.getTelephone());
-            if (existantTel != null) {
-                throw new IllegalArgumentException("Numéro de téléphone déjà utilisé");
-            }
-            demandeur.setTelephone(demandeDTO.getTelephone());
-            demandeur.setDateNaissance(demandeDTO.getDateNaissance());
-            demandeur.setLieuNaissance(demandeDTO.getLieuNaissance());
-            demandeur.setAdresseMadagascar(demandeDTO.getAdresseMadagascar());
-            demandeur.setDateCreation(LocalDateTime.now());
-
-            // 2. Valider le demandeur
-            ValidationErrorDTO validationDemandeur = demandeValidationService.validerDemandeur(demandeur);
-            if (!validationDemandeur.isSuccess()) {
-                validation.setSuccess(false);
-                validation.setMessage("Erreurs de validation du demandeur");
-                validation.setErrors(validationDemandeur.getErrors());
-                return validation;
-            }
-
-            // 3. Valider les documents obligatoires fournis
-            ValidationErrorDTO validationDocuments = demandeValidationService
-                    .validerDocumentsObligatoires(demandeDTO.getPiecesPresentes(), demandeDTO.getIdTypeMotif());
-            if (!validationDocuments.isSuccess()) {
-                validation.setSuccess(false);
-                validation.setMessage("Documents obligatoires manquants");
-                validation.setErrors(validationDocuments.getErrors());
-                return validation;
-            }
-
-            // 4. Charger les entités associées
-            Nationalite nationalite = null;
-            if (demandeDTO.getIdNationalite() != null) {
-                nationalite = nationaliteRepository.findById(demandeDTO.getIdNationalite()).orElse(null);
-                if (nationalite == null) {
-                    validation.setSuccess(false);
-                    validation.setMessage("Erreur: Nationalité invalide");
-                    validation.addError("La nationalité sélectionnée n'existe pas. Veuillez choisir une nationalité valide.");
-                    return validation;
-                }
-            } else {
-                validation.setSuccess(false);
-                validation.setMessage("Erreur: Nationalité obligatoire");
-                validation.addError("Vous devez sélectionner une nationalité.");
-                return validation;
-            }
-            demandeur.setNationalite(nationalite);
-
-            SituationMatrimoniale situation = null;
-            if (demandeDTO.getIdSituationMatrimoniale() != null) {
-                situation = situationMatrimonialeRepository.findById(demandeDTO.getIdSituationMatrimoniale()).orElse(null);
-                if (situation == null) {
-                    validation.setSuccess(false);
-                    validation.addError("Situation matrimoniale non trouvée: " + demandeDTO.getIdSituationMatrimoniale());
-                    return validation;
-                }
-            }
-            demandeur.setSituationMatrimoniale(situation);
-
-            // 5. Sauvegarder le demandeur
-            demandeur = demandeurRepository.save(demandeur);
-
-            // 6. Charger le statut initial
-            StatutDemande statut = statutDemandeRepository.findByLibelle("DOSSIER_CREE");
-            if (statut == null) {
-                validation.setSuccess(false);
-                validation.setMessage("Erreur de configuration du système");
-                validation.addError("Le statut initial 'DOSSIER_CREE' n'existe pas en base de données. Contactez l'administrateur.");
-                return validation;
-            }
-
-            // 7. Créer et sauvegarder la demande
-            Demande demande = new Demande();
-            demande.setDemandeur(demandeur);
-            demande.setDateDemande(LocalDateTime.now());
-            demande.setStatutDemande(statut);
-            demande.setDateTraitement(LocalDateTime.now());
-            
-            // Charger TypeMotif et TypeDemande si fournis
-            if (demandeDTO.getIdTypeMotif() != null) {
-                TypeMotif typeMotif = typeMotifRepository.findById(demandeDTO.getIdTypeMotif()).orElse(null);
-                demande.setTypeMotif(typeMotif);
-            }
-            if (demandeDTO.getIdTypeDemande() != null) {
-                TypeDemande typeDemande = typeDemandeRepository.findById(demandeDTO.getIdTypeDemande()).orElse(null);
-                demande.setTypeDemande(typeDemande);
-            }
-            
-            demande = demandeRepository.save(demande);
-
-            // 8. Créer et sauvegarder le passeport
-            Passeport passeport = new Passeport();
-            passeport.setDemandeur(demandeur);
-            Passeport existantPasseport = passeportRepository.findByNumero(demandeDTO.getNumeroPasseport());
-            if (existantPasseport != null) {
-                throw new IllegalArgumentException("Numero de passeport déjà utilisée");
-            }
-            passeport.setNumero(demandeDTO.getNumeroPasseport());
-            passeport.setDateDelivrance(demandeDTO.getDateDelivrancePasseport());
-            passeport.setDateExpiration(demandeDTO.getDateExpirationPasseport());
-            passeport.setDateCreation(LocalDateTime.now());
-            passeport = passeportRepository.save(passeport);
-
-            // 9. Créer et sauvegarder le visa transformable
-            TypeVisa typeVisa = typeVisaRepository.findByLibelle("TRANSFORMABLE");
-            if (typeVisa == null) {
-                validation.setSuccess(false);
-                validation.setMessage("Erreur de configuration du système");
-                validation.addError("Le type de visa 'TRANSFORMABLE' est introuvable. Veuillez verifier les donnees de reference.");
-                return validation;
-            }
-
-            com.teamlead.Model.Visa visa = new com.teamlead.Model.Visa();
-            Visa existantVisa = visaRepository.findByReference(demandeDTO.getReferenceVisa());
-            if (existantVisa != null) {
-                throw new IllegalArgumentException("Reference de visa déjà utilisée");
-            }
-            visa.setReference(demandeDTO.getReferenceVisa());
-            visa.setDateEntree(demandeDTO.getDateEntreeVisa());
-            visa.setLieuEntree(demandeDTO.getLieuEntreeVisa());
-            visa.setDateExpiration(demandeDTO.getDateExpirationVisa());
-            visa.setDemande(demande);
-            visa.setTypeVisa(typeVisa);
-            visa.setDateEmission(LocalDateTime.now());
-            visa.setDateModification(LocalDateTime.now());
-            visa = visaRepository.save(visa);
-
-            // 10. Créer et sauvegarder l'association passeport_visa
-            MotifTransfert motifTransfert = motifTransfertRepository.findFirstByOrderByIdAsc()
-                    .orElseGet(() -> {
-                        MotifTransfert created = new MotifTransfert();
-                        created.setLibelle("CREATION DEMANDE");
-                        return motifTransfertRepository.save(created);
-                    });
-
-            PasseportVisa passeportVisa = new PasseportVisa();
-            passeportVisa.setPasseport(passeport);
-            passeportVisa.setVisa(visa);
-            passeportVisa.setDateAssociation(java.time.LocalDate.now());
-            passeportVisa.setMotifTransfert(motifTransfert);
-            passeportVisa.setDateCreation(LocalDateTime.now());
-            passeportVisaRepository.save(passeportVisa);
-
-            // 11. Enregistrer dans le journal d'activite
-            TypeEvenement typeEvenement = typeEvenementRepository.findByCode("CREATION DEMANDE");
-            if (typeEvenement == null) {
-                typeEvenement = typeEvenementRepository.findByCode("CREATION_DEMANDE");
-            }
-            if (typeEvenement == null) {
-                validation.setSuccess(false);
-                validation.setMessage("Erreur de configuration du système");
-                validation.addError("Le type d'evenement 'CREATION DEMANDE' est introuvable.");
-                return validation;
-            }
-
-            JournalActivite journal = new JournalActivite();
-            journal.setDemandeur(demandeur);
-            journal.setTypeEvenement(typeEvenement);
-            journal.setDateAction(LocalDateTime.now());
-            journalActiviteRepository.save(journal);
-
-            // 12. Créer les pièces à fournir
-            if (demandeDTO.getPiecesPresentes() != null && !demandeDTO.getPiecesPresentes().isEmpty()) {
-                for (Integer idDocument : demandeDTO.getPiecesPresentes()) {
-                    PieceAFournir piece = new PieceAFournir();
+                    if(demandeDTO.getPiecesPresentes()!=null&&!demandeDTO.getPiecesPresentes().isEmpty()){
+                    for(Integer id:demandeDTO.getPiecesPresentes()){
+                    PieceAFournir piece=new PieceAFournir();
                     piece.setDemande(demande);
-                    piece.setTypeDocument(typeDocumentRepository.findById(idDocument).orElse(null));
+                    piece.setTypeDocument(typeDocumentRepository.findById(id).orElseThrow(()->new ValidationException("Erreur doc",List.of("Doc inexistant "+id))));
                     piece.setPresent(true);
                     piece.setDateDepot(LocalDateTime.now());
                     piece.setDateModification(LocalDateTime.now());
                     pieceAFournirRepository.save(piece);
-                }
-            }
+                    }}
 
-            // 13. Enregistrer dans l'historique du statut
-            ValidationErrorDTO resultStatut = demandeStatusService.initializeDemandeStatus(demande);
-            if (!resultStatut.isSuccess()) {
-                validation.setSuccess(false);
-                validation.setMessage(resultStatut.getMessage());
-                validation.setErrors(resultStatut.getErrors());
-                return validation;
-            }
+                    demandeStatusService.initializeDemandeStatus(demande);
+                    validation.setDemandeId(demande.getId());
+                    return validation;
 
-            validation.setDemandeId(demande.getId());
-            return validation;
+                    }catch(DataIntegrityViolationException e){
+                    throw new ValidationException("Erreur SQL",List.of("Contrainte violée",extractMostSpecificMessage(e)));
+                    }}
 
-        } catch (DataIntegrityViolationException e) {
-            validation.setSuccess(false);
-            String errorMsg = e.getMessage();
-            
-            // Analyser l'erreur pour fournir un message clair
-            if (errorMsg != null) {
-                if (errorMsg.contains("telephone") || errorMsg.contains("demandeur_telephone")) {
-                    validation.setMessage("Erreur: Ce numéro de téléphone est déjà utilisé");
-                    validation.addError("Un demandeur avec ce numéro de téléphone existe déjà. Veuillez utiliser un autre numéro.");
-                } else if (errorMsg.contains("id_statut_demande")) {
-                    validation.setMessage("Erreur de configuration: statut manquant");
-                    validation.addError("Le statut initial n'a pas pu être assigné à la demande. Contactez l'administrateur.");
-                } else {
-                    validation.setMessage("Erreur: Une contrainte de base de données a été violée");
-                    validation.addError("Les données fourni violentune règle de la base de données. Vérifiez vos informations.");
-                }
-            } else {
-                validation.setMessage("Erreur d'intégrité des données");
-                validation.addError("Une erreur s'est produite lors de l'enregistrement. Veuillez vérifier vos informations et réessayer.");
-            }
-            return validation;
-            
-        } catch (Exception e) {
-            validation.setSuccess(false);
-            
-            // Log l'erreur complète pour le débogage
-            System.err.println("Erreur lors de la création de demande: " + e.getClass().getName());
-            e.printStackTrace();
-            
-            // Message convivial pour l'utilisateur
-            String errorMsg = e.getMessage();
-            if (errorMsg != null && errorMsg.contains("DOSSIER_CREE")) {
-                validation.setMessage("Erreur: Le statut initial n'existe pas en base de données");
-                validation.addError("Configuration incorrecte. Veuillez contacter l'administrateur du système.");
-            } else if (errorMsg != null && errorMsg.contains("null")) {
-                validation.setMessage("Erreur: Des informations obligatoires sont manquantes");
-                validation.addError("Vérifiez que tous les champs obligatoires sont remplis correctement.");
-            } else {
-                validation.setMessage("Erreur serveur lors de l'enregistrement");
-                validation.addError("Une erreur inattendue s'est produite: " + (errorMsg != null ? errorMsg : "Erreur inconnue"));
-            }
-            return validation;
-        }
-    }
-}
+                    private String extractMostSpecificMessage(Throwable t){
+                    while(t.getCause()!=null)t=t.getCause();
+                    String m=t.getMessage();
+                    return(m==null||m.isBlank())?"(indisponible)":m.replace('\n',' ').replace('\r',' ').trim();
+                    }
+
+                    private ValidationErrorDTO failure(String m,String e){return buildFailure(m,List.of(e));}
+
+                    private ValidationErrorDTO buildFailure(String m,List<String> e){
+                    ValidationErrorDTO v=new ValidationErrorDTO(false,m);
+                    v.setErrors(e);
+                    return v;
+                    }
+                    }

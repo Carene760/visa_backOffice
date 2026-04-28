@@ -243,7 +243,7 @@
         <!-- Affichage des erreurs de validation -->
         <c:if test="${not empty erreur}">
             <div class="error-container" style="background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; padding: 12px 20px; margin-bottom: 20px; color: #721c24;">
-                <h3 style="margin-top: 0; color: #721c24;">❌ Erreurs de validation</h3>
+                <h3 style="margin-top: 0; color: #721c24;">Erreurs de validation</h3>
                 <p><strong>${erreur}</strong></p>
                 <c:if test="${not empty erreurs}">
                     <ul style="margin: 10px 0 0 20px;">
@@ -262,7 +262,7 @@
                 <div class="form-rows">
                     <div class="form-group">
                         <label for="demandeur_nom" class="required">Nom</label>
-                        <input type="text" id="demandeur_nom" name="demandeur_nom" value="${demandeDTO.nom}" required>
+                        <input type="text" id="demandeur_nom" name="demandeur_nom" value="${demandeDTO.nom}">
                     </div>
                     <div class="form-group">
                         <label for="demandeur_prenom">Prénom</label>
@@ -274,7 +274,7 @@
                     </div>
                     <div class="form-group">
                         <label for="demandeur_date_naissance" class="required">Date de Naissance</label>
-                        <input type="date" id="demandeur_date_naissance" name="demandeur_date_naissance" value="${demandeDTO.dateNaissance}" required>
+                        <input type="date" id="demandeur_date_naissance" name="demandeur_date_naissance" value="${demandeDTO.dateNaissance}">
                     </div>
                     <div class="form-group">
                         <label for="demandeur_lieu_naissance">Lieu de Naissance</label>
@@ -282,7 +282,7 @@
                     </div>
                     <div class="form-group">
                         <label for="demandeur_nationalite" class="required">Nationalité</label>
-                        <select id="demandeur_nationalite" name="demandeur_nationalite" required>
+                        <select id="demandeur_nationalite" name="demandeur_nationalite">
                             <option value="">-- Sélectionner --</option>
                             <c:forEach var="nat" items="${nationalites}">
                                 <option value="${nat.id}" <c:if test="${nat.id == demandeDTO.idNationalite}">selected</c:if>>${nat.libelle}</option>
@@ -291,7 +291,7 @@
                     </div>
                     <div class="form-group">
                         <label for="demandeur_situation" class="required">Situation Matrimoniale</label>
-                        <select id="demandeur_situation" name="demandeur_situation" required>
+                        <select id="demandeur_situation" name="demandeur_situation">
                             <option value="">-- Sélectionner --</option>
                             <c:forEach var="sit" items="${situations}">
                                 <option value="${sit.id}" <c:if test="${sit.id == demandeDTO.idSituationMatrimoniale}">selected</c:if>>${sit.libelle}</option>
@@ -302,7 +302,7 @@
                 <div class="form-rows full">
                     <div class="form-group">
                         <label for="demandeur_adresse" class="required">Adresse à Madagascar</label>
-                        <textarea id="demandeur_adresse" name="demandeur_adresse" required>${demandeDTO.adresseMadagascar}</textarea>
+                        <textarea id="demandeur_adresse" name="demandeur_adresse">${demandeDTO.adresseMadagascar}</textarea>
                     </div>
                 </div>
                 <div class="form-rows">
@@ -312,7 +312,7 @@
                     </div>
                     <div class="form-group">
                         <label for="demandeur_telephone" class="required">Téléphone</label>
-                        <input type="tel" id="demandeur_telephone" name="demandeur_telephone" value="${demandeDTO.telephone}" required>
+                        <input type="tel" id="demandeur_telephone" name="demandeur_telephone" value="${demandeDTO.telephone}">
                     </div>
                 </div>
             </div>
@@ -323,15 +323,15 @@
                 <div class="form-rows">
                     <div class="form-group">
                         <label for="passeport_numero" class="required">Numéro de Passeport</label>
-                        <input type="text" id="passeport_numero" name="passeport_numero" value="${demandeDTO.numeroPasseport}" required>
+                        <input type="text" id="passeport_numero" name="passeport_numero" value="${demandeDTO.numeroPasseport}">
                     </div>
                     <div class="form-group">
                         <label for="passeport_date_delivrance" class="required">Date de Délivrance</label>
-                        <input type="date" id="passeport_date_delivrance" name="passeport_date_delivrance" value="${demandeDTO.dateDelivrancePasseport}" required>
+                        <input type="date" id="passeport_date_delivrance" name="passeport_date_delivrance" value="${demandeDTO.dateDelivrancePasseport}">
                     </div>
                     <div class="form-group">
                         <label for="passeport_date_expiration" class="required">Date d'Expiration</label>
-                        <input type="date" id="passeport_date_expiration" name="passeport_date_expiration" value="${demandeDTO.dateExpirationPasseport}" required>
+                        <input type="date" id="passeport_date_expiration" name="passeport_date_expiration" value="${demandeDTO.dateExpirationPasseport}">
                     </div>
                 </div>
             </div>
@@ -342,11 +342,11 @@
                 <div class="form-rows">
                     <div class="form-group">
                         <label for="visa_reference" class="required">Référence du Visa</label>
-                        <input type="text" id="visa_reference" name="visa_reference" value="${demandeDTO.referenceVisa}" required>
+                        <input type="text" id="visa_reference" name="visa_reference" value="${demandeDTO.referenceVisa}">
                     </div>
                     <div class="form-group">
                         <label for="visa_date_entree" class="required">Date d'Entrée</label>
-                        <input type="date" id="visa_date_entree" name="visa_date_entree" value="${demandeDTO.dateEntreeVisa}" required>
+                        <input type="date" id="visa_date_entree" name="visa_date_entree" value="${demandeDTO.dateEntreeVisa}">
                     </div>
                     <div class="form-group">
                         <label for="visa_lieu_entree">Lieu d'Entrée</label>
@@ -354,7 +354,7 @@
                     </div>
                     <div class="form-group">
                         <label for="visa_date_expiration" class="required">Date d'Expiration</label>
-                        <input type="date" id="visa_date_expiration" name="visa_date_expiration" value="${demandeDTO.dateExpirationVisa}" required>
+                        <input type="date" id="visa_date_expiration" name="visa_date_expiration" value="${demandeDTO.dateExpirationVisa}">
                     </div>
                     <div class="form-group">
                         <label>Type de visa (conception)</label>
@@ -374,7 +374,7 @@
 
                 <div class="form-group">
                     <label for="type_motif" class="required">Statut du visa demandé</label>
-                    <select id="type_motif" name="type_motif" required onchange="updateDocuments()">
+                    <select id="type_motif" name="type_motif" onchange="updateDocuments()">
                         <option value="">-- Sélectionner --</option>
                         <c:forEach var="motif" items="${typeMotifs}">
                             <option value="${motif.id}" <c:if test="${motif.id == demandeDTO.idTypeMotif}">selected</c:if>>${motif.libelle}</option>
@@ -384,7 +384,7 @@
 
                 <div class="form-group">
                     <label for="type_demande" class="required">Type de Demande</label>
-                    <select id="type_demande" name="type_demande" required>
+                    <select id="type_demande" name="type_demande">
                         <option value="">-- Sélectionner --</option>
                         <c:forEach var="type" items="${typesDemande}">
                             <option value="${type.id}" <c:if test="${type.id == demandeDTO.idTypeDemande}">selected</c:if>>${type.libelle}</option>
@@ -458,6 +458,10 @@
     </div>
 
     <script>
+        // Mode test pour pré-remplissage
+        const modeTestParam = '${param.modeTest}';
+        const modeTestEnabled = modeTestParam === '1' || modeTestParam === 'true' || modeTestParam === 'on';
+
         // Placeholder map for specific documents by motif.
         // Populated later when specific document rendering is implemented.
         const documentsByMotif = {};
@@ -490,6 +494,39 @@
             }
         }
 
+        function applyTestDefaults() {
+            document.getElementById('demandeur_nom').value = 'Dupont';
+            document.getElementById('demandeur_prenom').value = 'Jean';
+            document.getElementById('demandeur_nom_naissance').value = 'Durand';
+            document.getElementById('demandeur_date_naissance').value = '1990-01-15';
+            document.getElementById('demandeur_lieu_naissance').value = 'Paris';
+            document.getElementById('demandeur_nationalite').value = '1';
+            document.getElementById('demandeur_situation').value = '1';
+            document.getElementById('demandeur_adresse').value = '123 Rue de la Paix, Antananarivo 101';
+            document.getElementById('demandeur_email').value = 'jean.dupont@example.com';
+            document.getElementById('demandeur_telephone').value = '+261 34 12 34 567';
+            document.getElementById('passeport_numero').value = 'AB123456';
+            document.getElementById('passeport_date_delivrance').value = '2019-06-10';
+            document.getElementById('passeport_date_expiration').value = '2029-06-09';
+            document.getElementById('visa_reference').value = 'VIS-2024-0001';
+            document.getElementById('visa_date_entree').value = '2024-01-20';
+            document.getElementById('visa_lieu_entree').value = 'Ivato';
+            document.getElementById('visa_date_expiration').value = '2026-01-19';
+            document.getElementById('type_motif').value = '1';
+            document.getElementById('type_demande').value = '1';
+            
+            // Cocher quelques documents
+            const checkboxes = document.querySelectorAll('input[name="documents"]');
+            if (checkboxes.length > 0) {
+                checkboxes[0].checked = true;
+                if (checkboxes.length > 1) checkboxes[1].checked = true;
+            }
+        }
+
+        // Appliquer les defaults si mode test activé
+        if (modeTestEnabled) {
+            applyTestDefaults();
+        }
     </script>
 </body>
 </html>
