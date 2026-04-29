@@ -1,7 +1,6 @@
 package com.teamlead.Repository;
 
 import java.util.List;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,4 +13,9 @@ public interface DecisionDocumentRepository extends JpaRepository<DecisionDocume
     List<DecisionDocument> findByDemande(Demande demande);
     
     List<DecisionDocument> findByDemandeAndTypeDecision(Demande demande, String typeDecision);
+@Repository
+public interface DecisionDocumentRepository extends JpaRepository<DecisionDocument, Integer> {
+    List<DecisionDocument> findByIdDemande(Integer idDemande);
+    DecisionDocument findFirstByIdDemandeOrderByDateDecisionDesc(Integer idDemande);
+
 }

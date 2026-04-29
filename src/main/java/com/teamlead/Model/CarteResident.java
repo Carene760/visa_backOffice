@@ -3,9 +3,14 @@ package com.teamlead.Model;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -38,11 +43,18 @@ public class CarteResident {
     @Column(name = "date_expiration")
     private LocalDate dateExpiration;
 
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_demande", nullable = false, foreignKey = @ForeignKey(name = "carte_resident_id_demande_fkey"))
     private Demande demande;
 
     @ManyToOne(fetch = FetchType.LAZY)
+
+    @ManyToOne
+    @JoinColumn(name = "id_demande", nullable = false, foreignKey = @ForeignKey(name = "carte_resident_id_demande_fkey"))
+    private Demande demande;
+
+    @ManyToOne
     @JoinColumn(name = "id_passeport", nullable = false, foreignKey = @ForeignKey(name = "carte_resident_id_passeport_fkey"))
     private Passeport passeport;
 

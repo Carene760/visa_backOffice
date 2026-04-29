@@ -47,4 +47,10 @@ public class PieceAFournir {
 
     @Column(name = "date_modification")
     private LocalDateTime dateModification;
+
+    @Column(name = "scan_complete")
+    private Boolean scanComplete = Boolean.FALSE;
+
+    @Column(name = "date_scan_complete")
+    private LocalDateTime dateScanComplete;
 }

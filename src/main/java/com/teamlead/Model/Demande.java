@@ -30,11 +30,11 @@ public class Demande {
     private Demandeur demandeur;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_type_motif", foreignKey = @ForeignKey(name = "demande_id_type_motif_fkey"))
+    @JoinColumn(name = "id_type_motif", nullable = false, foreignKey = @ForeignKey(name = "demande_id_type_motif_fkey"))
     private TypeMotif typeMotif;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_type_demande", foreignKey = @ForeignKey(name = "demande_id_type_demande_fkey"))
+    @JoinColumn(name = "id_type_demande", nullable = false, foreignKey = @ForeignKey(name = "demande_id_type_demande_fkey"))
     private TypeDemande typeDemande;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -63,5 +63,20 @@ public class Demande {
 
     @Column(name = "date_modification")
     private LocalDateTime dateModification;
+
+    // Nouvelles colonnes Sprint 2
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_demande_source", foreignKey = @ForeignKey(name = "demande_id_demande_source_fkey"))
+    private Demande demandeSource;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_sous_type_demande", foreignKey = @ForeignKey(name = "demande_id_sous_type_demande_fkey"))
+    private SousTypeDemande sousTypeDemande;
+
+    @Column(name = "avec_donnees_anterieures")
+    private Boolean avecDonneesAnterieures;
+
+    @Column(name = "est_base_generee")
+    private Boolean estBaseGeneree;
 }
  

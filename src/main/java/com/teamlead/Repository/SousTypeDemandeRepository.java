@@ -7,6 +7,5 @@ import com.teamlead.Model.SousTypeDemande;
 
 @Repository
 public interface SousTypeDemandeRepository extends JpaRepository<SousTypeDemande, Integer> {
-    
     SousTypeDemande findByLibelle(String libelle);
 }

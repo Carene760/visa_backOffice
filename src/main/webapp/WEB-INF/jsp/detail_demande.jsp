@@ -5,7 +5,7 @@
     <title>Demande Enregistrée</title>
 </head>
 <body>
-    <h1>✅ Votre demande a été enregistrée avec succès!</h1>
+    <h1>Votre demande a été enregistrée avec succès!</h1>
     
     <div class="success-message">
         <p><strong>Numéro de dossier:</strong> ${demandeId}</p>
