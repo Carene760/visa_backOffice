@@ -1,0 +1,221 @@
+package com.teamlead.Service;
+
+import com.teamlead.Model.*;
+import com.teamlead.Repository.*;
+import com.teamlead.DTO.ValidationErrorDTO;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * Service métier pour gestion des duplicata/transfert
+ * Responsabilités:
+ * - Créer demande base (type NOUVEAU_TITRE, est_base_generee=TRUE) quand pas d'antécédents trouvés
+ * - Chainer les demandes duplicata/transfert avec leur source (id_demande_source)
+ * - Vérifier qu'un duplicata/transfert a toujours une source
+ * - Assurer source et demande courante ont le même demandeur
+ * 
+ * Attributs des demandes:
+ * - avec_donnees_anterieures BOOLEAN
+ * - est_base_generee BOOLEAN
+ * - id_demande_source INT FK (nullable)
+ */
+@Service
+public class DuplicataTransfertService {
+
+    @Autowired
+    private DemandeRepository demandeRepository;
+
+    @Autowired
+    private TypeDemandeRepository typeDemandeRepository;
+
+    @Autowired
+    private StatutDemandeRepository statutDemandeRepository;
+
+    @Autowired
+    private HistoriqueStatutDemandeRepository historiqueRepository;
+
+    /**
+     * Crée une demande base de type NOUVEAU_TITRE avec est_base_generee=TRUE
+     * Cette demande sert de source pour un duplicata/transfert sans antécédents
+     * 
+     * @param demandeur Le demandeur de la demande base
+     * @return La demande base créée avec statut DOSSIER_CREE
+     */
+    @Transactional
+    public Demande creerDemandeBase(Demandeur demandeur) {
+        Demande demandeBase = new Demande();
+        
+        // Récupérer type NOUVEAU_TITRE via repository
+        TypeDemande typeNouveauTitre = typeDemandeRepository.findByLibelle("NOUVEAU_TITRE");
+        if (typeNouveauTitre == null) {
+            // Créer si n'existe pas
+            typeNouveauTitre = new TypeDemande();
+            typeNouveauTitre.setLibelle("NOUVEAU_TITRE");
+            typeNouveauTitre = typeDemandeRepository.save(typeNouveauTitre);
+        }
+        
+        // Récupérer statut DOSSIER_CREE
+        StatutDemande statutCreee = statutDemandeRepository.findByLibelle("DOSSIER_CREE");
+        if (statutCreee == null) {
+            statutCreee = new StatutDemande();
+            statutCreee.setLibelle("DOSSIER_CREE");
+            statutCreee = statutDemandeRepository.save(statutCreee);
+        }
+        
+        demandeBase.setDemandeur(demandeur);
+        demandeBase.setTypeDemande(typeNouveauTitre);
+        demandeBase.setEstBaseGeneree(true);
+        demandeBase.setAvecDonneesAnterieures(false);
+        demandeBase.setDateDemande(LocalDateTime.now());
+        demandeBase.setStatutDemande(statutCreee);
+        
+        // Sauvegarder la demande base
+        Demande saved = demandeRepository.save(demandeBase);
+        
+        // Créer historique initial
+        HistoriqueStatutDemande historique = new HistoriqueStatutDemande();
+        historique.setDemande(saved);
+        historique.setStatut(statutCreee);
+        historique.setDateChangement(LocalDateTime.now());
+        historiqueRepository.save(historique);
+        
+        // Sauvegarder et retourner
+        return saved;
+    }
+
+    /**
+     * Chaîne une demande duplicata/transfert à sa source
+     * Vérifications:
+     * - Une source doit exister
+     * - Source et demande doivent avoir le même demandeur
+     * - Source ne doit pas être elle-même une demande base
+     * 
+     * @param demande La demande duplicata/transfert (non chainée)
+     * @param idDemandeSource L'ID de la demande source
+     * @return ValidationErrorDTO avec succès ou erreurs
+     */
+    @Transactional
+    public ValidationErrorDTO chainierDemande(Demande demande, Integer idDemandeSource) {
+        ValidationErrorDTO result = new ValidationErrorDTO();
+        result.setSuccess(true);
+        
+        // Vérifier que la source existe
+        if (idDemandeSource == null || idDemandeSource <= 0) {
+            result.setSuccess(false);
+            result.addError("La source de demande est obligatoire pour un duplicata/transfert");
+            return result;
+        }
+        
+        Demande source = demandeRepository.findById(idDemandeSource).orElse(null);
+        if (source == null) {
+            result.setSuccess(false);
+            result.addError("Demande source #" + idDemandeSource + " non trouvée");
+            return result;
+        }
+        
+        // Vérifier que source et demande ont le même demandeur
+        if (!source.getDemandeur().getId().equals(demande.getDemandeur().getId())) {
+            result.setSuccess(false);
+            result.addError("La demande source et la demande courante doivent être du même demandeur");
+            return result;
+        }
+        
+        // Chaîner les demandes
+        demande.setDemandeSource(source);
+        
+        return result;
+    }
+
+    /**
+     * Valide qu'une demande duplicata/transfert a une source valide
+     * 
+     * @param demande La demande à valider
+     * @return ValidationErrorDTO avec succès ou erreurs
+     */
+    @Transactional(readOnly = true)
+    public ValidationErrorDTO validerSourceDuplicataTransfert(Demande demande) {
+        ValidationErrorDTO result = new ValidationErrorDTO();
+        result.setSuccess(true);
+        
+        // Vérifier que c'est effectivement un duplicata/transfert
+        if (demande.getTypeDemande() == null || 
+            !demande.getTypeDemande().getLibelle().equals("DUPLICATA")) {
+            return result; // Non applicable
+        }
+        
+        // Vérifier que la source est présente
+        if (demande.getDemandeSource() == null) {
+            result.setSuccess(false);
+            result.addError("Une demande de type DUPLICATA doit avoir une source de demande");
+            return result;
+        }
+        
+        // Vérifier que la source existe en base
+        Demande source = demande.getDemandeSource();
+        if (source.getId() == null) {
+            result.setSuccess(false);
+            result.addError("Source de demande invalide");
+            return result;
+        }
+        
+        // Vérifier que source et demande ont le même demandeur
+        if (!source.getDemandeur().getId().equals(demande.getDemandeur().getId())) {
+            result.setSuccess(false);
+            result.addError("La source et la demande courante doivent être du même demandeur");
+            return result;
+        }
+        
+        return result;
+    }
+
+    /**
+     * Récupère la chaîne complète des demandes (source -> source -> ... -> base)
+     * Utile pour l'affichage du dossier
+     * 
+     * @param demande Une demande quelconque
+     * @return Liste ordonnée des demandes remontées jusqu'à la base
+     */
+    @Transactional(readOnly = true)
+    public List<Demande> obtenirChaineDemandes(Demande demande) {
+        java.util.List<Demande> chaine = new java.util.ArrayList<>();
+        Demande current = demande;
+        
+        // Ajouter la demande courante
+        chaine.add(current);
+        
+        // Remonter jusqu'à la source racine (demande base ou sans source)
+        while (current.getDemandeSource() != null) {
+            Demande source = current.getDemandeSource();
+            if (source.getId() == null) {
+                break; // Source invalide, arrêter
+            }
+            chaine.add(0, source); // Ajouter au début pour avoir l'ordre chronologique
+            current = source;
+        }
+        
+        return chaine;
+    }
+
+    /**
+     * Récupère la demande base si elle existe
+     * 
+     * @param demande Une demande quelconque
+     * @return La demande base (est_base_generee=TRUE), ou null si pas trouvée
+     */
+    @Transactional(readOnly = true)
+    public Demande obtenirDemandeBase(Demande demande) {
+        List<Demande> chaine = obtenirChaineDemandes(demande);
+        
+        for (Demande d : chaine) {
+            if (d.getEstBaseGeneree() != null && d.getEstBaseGeneree()) {
+                return d;
+            }
+        }
+        
+        return null;
+    }
+
+}

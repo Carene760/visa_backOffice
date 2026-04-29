@@ -14,6 +14,11 @@ public interface PieceAFournirRepository extends JpaRepository<PieceAFournir, In
      */
     List<PieceAFournir> findByDemandeId(Integer demandeId);
     
+        /**
+         * Récupère toutes les pièces à fournir pour une demande (par objet Demande)
+         */
+        List<PieceAFournir> findByDemande(com.teamlead.Model.Demande demande);
+    
     /**
      * Récupère les pièces à fournir obligatoires pour une demande
      */

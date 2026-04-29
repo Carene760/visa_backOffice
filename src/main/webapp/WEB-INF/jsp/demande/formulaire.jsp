@@ -1,206 +1,189 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Demande de Visa Transformable</title>
-    <style>
-        :root {
-            --paper-bg: #f3f3ef;
-            --card-bg: #ffffff;
-            --line: #b5b5b5;
-            --text-main: #171717;
-            --text-soft: #4a4a4a;
-            --accent: #d4ce84;
-            --accent-dark: #173f70;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Times New Roman', serif;
-            background: radial-gradient(circle at 20% 0%, #fafaf7 0%, var(--paper-bg) 45%, #ecece8 100%);
-            min-height: 100vh;
-            padding: 20px;
-            color: var(--text-main);
-        }
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            background: var(--card-bg);
-            padding: 28px;
-            border: 1px solid #9a9a9a;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-        }
-        h1 {
-            color: var(--text-main);
-            margin-bottom: 24px;
-            text-align: center;
-            border-bottom: 1px solid #888;
-            padding-bottom: 12px;
-            font-size: 24px;
-            text-transform: uppercase;
-            letter-spacing: 0.7px;
-        }
-        .form-section {
-            margin-bottom: 20px;
-            padding: 16px;
-            background: #fff;
-            border: 1px solid var(--line);
-        }
-        .form-section h2 {
-            color: var(--text-main);
-            font-size: 17px;
-            margin-bottom: 14px;
-            text-transform: uppercase;
-            border-left: 4px solid var(--accent);
-            padding-left: 10px;
-        }
-        .form-rows {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-        .form-rows.full {
-            grid-template-columns: 1fr;
-        }
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-        label {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-        .required::after {
-            content: " *";
-            color: red;
-        }
-        input[type="text"],
-        input[type="email"],
-        input[type="tel"],
-        input[type="date"],
-        select,
-        textarea {
-            padding: 10px 12px;
-            border: 1px solid #8f8f8f;
-            border-radius: 2px;
-            font-size: 14px;
-            transition: border-color 0.2s, background-color 0.2s;
-            background: #fff;
-        }
-        input[type="text"]:focus,
-        input[type="email"]:focus,
-        input[type="tel"]:focus,
-        input[type="date"]:focus,
-        select:focus,
-        textarea:focus {
-            outline: none;
-            border-color: var(--accent);
-            background-color: #fcfdff;
-            box-shadow: none;
-        }
-        textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        .document-section {
-            margin-top: 8px;
-            padding: 12px;
-            background: #fcfcfc;
-            border: 1px dashed #b7b7b7;
-        }
-        .document-section h3 {
-            color: #333;
-            font-size: 16px;
-            margin-bottom: 15px;
-        }
-        .document-list {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        .document-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background: #fafafa;
-            border: 1px solid #d9d9d9;
-            border-radius: 2px;
-            transition: background-color 0.2s, border-color 0.2s;
-        }
-        .document-item:hover {
-            background: #f3f7fb;
-            border-color: #b8c7da;
-        }
-        .document-item input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-        .document-item label {
-            margin: 0;
-            font-weight: 400;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        .mandatory-badge {
-            display: inline-block;
-            background: #b82121;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: bold;
-            margin-left: 5px;
-        }
-        .optional-badge {
-            display: inline-block;
-            background: #6a6a6a;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: bold;
-            margin-left: 5px;
-        }
-        .form-actions {
-            display: flex;
-            gap: 15px;
-            margin-top: 30px;
-            justify-content: center;
-            border-top: 1px solid #d7d7d7;
-            padding-top: 18px;
-        }
-        button {
-            padding: 12px 30px;
-            border: none;
-            border-radius: 2px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.2s;
-        }
-        .btn-submit {
-            background: var(--accent);
-            color: white;
-        }
-        .btn-submit:hover {
-            background: var(--accent-dark);
-            transform: translateY(-1px);
-            box-shadow: none;
-        }
-        .btn-reset {
-            background: #ecf0f1;
-            color: #333;
-        }
-        .btn-reset:hover {
-            background: #bdc3c7;
-        }
-        .info-note {
+<jsp:include page="/WEB-INF/jsp/layout.jsp">
+    <jsp:param name="pageTitle" value="Demande de Visa Transformable" />
+</jsp:include>
+
+<div class="main-content">
+    <div class="container">
+        <style>
+            .container {
+                max-width: 960px;
+                margin: 0 auto;
+                background: var(--card-bg);
+                padding: 28px;
+                border: 1px solid #9a9a9a;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            }
+            h1 {
+                color: var(--text-main);
+                margin-bottom: 24px;
+                text-align: center;
+                border-bottom: 1px solid #888;
+                padding-bottom: 12px;
+                font-size: 24px;
+                text-transform: uppercase;
+                letter-spacing: 0.7px;
+            }
+            .form-section {
+                margin-bottom: 20px;
+                padding: 16px;
+                background: #fff;
+                border: 1px solid var(--line);
+            }
+            .form-section h2 {
+                color: var(--text-main);
+                font-size: 17px;
+                margin-bottom: 14px;
+                text-transform: uppercase;
+                border-left: 4px solid var(--accent);
+                padding-left: 10px;
+            }
+            .form-rows {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+            }
+            .form-rows.full {
+                grid-template-columns: 1fr;
+            }
+            .form-group {
+                display: flex;
+                flex-direction: column;
+            }
+            label {
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 8px;
+                font-size: 14px;
+            }
+            .required::after {
+                content: " *";
+                color: red;
+            }
+            input[type="text"],
+            input[type="email"],
+            input[type="tel"],
+            input[type="date"],
+            select,
+            textarea {
+                padding: 10px 12px;
+                border: 1px solid #8f8f8f;
+                border-radius: 2px;
+                font-size: 14px;
+                transition: border-color 0.2s, background-color 0.2s;
+                background: #fff;
+            }
+            input[type="text"]:focus,
+            input[type="email"]:focus,
+            input[type="tel"]:focus,
+            input[type="date"]:focus,
+            select:focus,
+            textarea:focus {
+                outline: none;
+                border-color: var(--accent);
+                background-color: #fcfdff;
+                box-shadow: none;
+            }
+            textarea {
+                resize: vertical;
+                min-height: 80px;
+            }
+            .document-section {
+                margin-top: 8px;
+                padding: 12px;
+                background: #fcfcfc;
+                border: 1px dashed #b7b7b7;
+            }
+            .document-section h3 {
+                color: #333;
+                font-size: 16px;
+                margin-bottom: 15px;
+            }
+            .document-list {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+            .document-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px;
+                background: #fafafa;
+                border: 1px solid #d9d9d9;
+                border-radius: 2px;
+                transition: background-color 0.2s, border-color 0.2s;
+            }
+            .document-item:hover {
+                background: #f3f7fb;
+                border-color: #b8c7da;
+            }
+            .document-item input[type="checkbox"] {
+                width: 18px;
+                height: 18px;
+                cursor: pointer;
+            }
+            .document-item label {
+                margin: 0;
+                font-weight: 400;
+                cursor: pointer;
+                font-size: 13px;
+            }
+            .mandatory-badge {
+                display: inline-block;
+                background: #b82121;
+                color: white;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-size: 11px;
+                font-weight: bold;
+                margin-left: 5px;
+            }
+            .optional-badge {
+                display: inline-block;
+                background: #6a6a6a;
+                color: white;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-size: 11px;
+                font-weight: bold;
+                margin-left: 5px;
+            }
+            .form-actions {
+                display: flex;
+                gap: 15px;
+                margin-top: 30px;
+                justify-content: center;
+                border-top: 1px solid #d7d7d7;
+                padding-top: 18px;
+            }
+            button {
+                padding: 12px 30px;
+                border: none;
+                border-radius: 2px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background-color 0.2s, transform 0.2s;
+            }
+            .btn-submit {
+                background: var(--accent);
+                color: white;
+            }
+            .btn-submit:hover {
+                background: var(--accent-dark);
+                transform: translateY(-1px);
+                box-shadow: none;
+            }
+            .btn-reset {
+                background: #ecf0f1;
+                color: #333;
+            }
+            .btn-reset:hover {
+                background: #bdc3c7;
+            }
+        </style>
             margin-top: 8px;
             font-size: 13px;
             color: var(--text-soft);
@@ -491,5 +474,7 @@
         }
 
     </script>
+    </div>
+</div>
 </body>
 </html>

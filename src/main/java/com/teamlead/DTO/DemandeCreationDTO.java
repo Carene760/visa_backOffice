@@ -43,4 +43,9 @@ public class DemandeCreationDTO {
     
     // Pièces à fournir (liste des IDs de documents présents)
     private List<Integer> piecesPresentes;
+    
+    // Informations Sprint 2 (optionnelles)
+    private Integer idSousTypeDemande;
+    private Integer idDemandeSource;
+    private Boolean avecDonneesAnterieures;
 }
