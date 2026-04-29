@@ -1,8 +1,8 @@
 Sprint 2 :
 
 TEAM LEAD : 3273
-DEV1 : 
-DEV2 : 
+DEV1 : 3265
+DEV2 : 3371
 
 
 DEV1 :

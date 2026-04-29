@@ -8,7 +8,13 @@ import com.teamlead.Model.CarteResident;
 
 @Repository
 public interface CarteResidentRepository extends JpaRepository<CarteResident, Integer> {
+
+    
+    CarteResident findByReference(String reference);
+}
+
     List<CarteResident> findByIdDemande(Integer idDemande);
     CarteResident findByReference(String reference);
 }
+
 

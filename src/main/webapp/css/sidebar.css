@@ -1,0 +1,137 @@
+/* Sidebar Styling - Dark & Elegant Theme */
+
+:root {
+    --primary-dark: #1a1f2e;
+    --primary-darker: #0f1219;
+    --accent-blue: #3498db;
+    --accent-teal: #1abc9c;
+    --text-light: #ecf0f1;
+    --text-muted: #95a5a6;
+    --bg-light: #f5f5f5;
+    --bg-darker: #2c3e50;
+    --border-subtle: #34495e;
+    --danger: #e74c3c;
+    --warning: #f39c12;
+    --success: #27ae60;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Ensure no gradients - flat colors only */
+body, .sidebar, .header, .content {
+    background: solid;
+}
+
+/* Remove any gradient filters */
+body::before, .sidebar::before, .header::before, .content::before {
+    content: none;
+}
+
+/* Typography */
+.sidebar h2, .sidebar h3, .header h1 {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Sidebar menu items - smooth transitions without gradients */
+.sidebar-menu-item {
+    position: relative;
+}
+
+.sidebar-menu-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background-color: transparent;
+    border-radius: 0 2px 2px 0;
+    transition: background-color 0.2s;
+}
+
+.sidebar-menu-item:hover::before,
+.sidebar-menu-item.active::before {
+    background-color: var(--accent-blue);
+}
+
+/* Submenu styling */
+.sidebar-submenu-item {
+    position: relative;
+    margin-left: 10px;
+}
+
+.sidebar-submenu-item::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: transparent;
+    transition: background-color 0.2s;
+}
+
+.sidebar-submenu-item:hover::after,
+.sidebar-submenu-item.active::after {
+    background-color: var(--accent-teal);
+}
+
+/* Accessibility */
+.sidebar-menu-item:focus,
+.sidebar-submenu-item:focus {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
+/* Smooth animations */
+.sidebar-submenu {
+    transition: max-height 0.3s ease-in-out;
+    max-height: 0;
+    overflow: hidden;
+}
+
+.sidebar-submenu.open {
+    max-height: 500px;
+}
+
+/* Print styles */
+@media print {
+    .sidebar, .header {
+        display: none;
+    }
+
+    .main-content {
+        width: 100%;
+    }
+}
+
+/* Dark mode enhancement */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-light: #1a1f2e;
+    }
+
+    body {
+        background-color: var(--primary-dark);
+        color: var(--text-light);
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+    .sidebar-menu-item,
+    .sidebar-submenu-item {
+        border: 1px solid transparent;
+    }
+
+    .sidebar-menu-item:hover,
+    .sidebar-menu-item.active {
+        border-color: var(--accent-blue);
+    }
+
+    .sidebar-submenu-item:hover,
+    .sidebar-submenu-item.active {
+        border-color: var(--accent-teal);
+    }
+}
