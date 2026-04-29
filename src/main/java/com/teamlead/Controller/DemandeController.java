@@ -1,27 +1,22 @@
 package com.teamlead.Controller;
 
+import java.time.LocalDate;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import com.teamlead.DTO.*;
+import com.teamlead.Exception.ValidationException;
 import com.teamlead.Model.*;
 import com.teamlead.Service.*;
-import java.util.List;
-import com.teamlead.DTO.DemandeCreationDTO;
-import com.teamlead.DTO.ValidationErrorDTO;
-import java.time.LocalDate;
+import com.teamlead.Repository.*;
 
 @Controller
 @RequestMapping("/demande")
 public class DemandeController {
-
     @Autowired
     private NationaliteService nationaliteService;
 
@@ -36,136 +31,127 @@ public class DemandeController {
 
     @Autowired
     private TypeDemandeService typeDemandeService;
-  
+
     @Autowired
     private DemandeService demandeService;
+
+    @Autowired
+    private DocumentScanService documentScanService;
+
+    @Autowired
+    private DocumentScanValidationService documentScanValidationService;
+
+    @Autowired
+    private DemandeStatusService demandeStatusService;
+
+    @Autowired
+    private DemandeRepository demandeRepository;
 
     @GetMapping("/nouveau")
     public String afficherFormulaire(Model model) {
         chargerDonneesReference(model);
         model.addAttribute("demande", new Demande());
-
         return "demande/formulaire";
     }
-  
-    /**
-     * Crée une nouvelle demande de visa transformable en long séjour
-     * POST /demande/creer
-     * 
-     * Valide tous les champs obligatoires et documents obligatoires
-     * Si OK → Enregistre en base avec statut "DOSSIER_CREE"
-     * Si erreur → Retourne erreur détaillée
-     */
+
     @PostMapping("/creer")
     public String creerDemande(
             @RequestParam String demandeur_nom,
             @RequestParam(required = false) String demandeur_prenom,
             @RequestParam(required = false) String demandeur_nom_naissance,
-            @RequestParam(required = false) String demandeur_date_naissance,
+            @RequestParam String demandeur_date_naissance,
             @RequestParam(required = false) String demandeur_lieu_naissance,
-            @RequestParam(required = false) Integer demandeur_nationalite,
+            @RequestParam Integer demandeur_nationalite,
             @RequestParam(required = false) Integer demandeur_situation,
             @RequestParam String demandeur_adresse,
             @RequestParam(required = false) String demandeur_email,
             @RequestParam String demandeur_telephone,
             @RequestParam String passeport_numero,
-            @RequestParam(required = false) String passeport_date_delivrance,
-            @RequestParam(required = false) String passeport_date_expiration,
+            @RequestParam String passeport_date_delivrance,
+            @RequestParam String passeport_date_expiration,
             @RequestParam String visa_reference,
-            @RequestParam(required = false) String visa_date_entree,
+            @RequestParam String visa_date_entree,
             @RequestParam(required = false) String visa_lieu_entree,
-            @RequestParam(required = false) String visa_date_expiration,
-            @RequestParam(required = false) Integer type_demande,
-            @RequestParam(required = false) Integer type_motif,
+            @RequestParam String visa_date_expiration,
+            @RequestParam Integer type_demande,
+            @RequestParam Integer type_motif,
             @RequestParam(required = false) String[] documents,
             Model model) {
-        DemandeCreationDTO demandeDTO = new DemandeCreationDTO();
-
+        DemandeCreationDTO dto = new DemandeCreationDTO();
         try {
-            // Construire le DTO à partir des paramètres du formulaire
-            demandeDTO.setNom(demandeur_nom);
-            demandeDTO.setPrenom(demandeur_prenom);
-            demandeDTO.setNomNaissance(demandeur_nom_naissance);
-            demandeDTO.setEmail(demandeur_email);
-            demandeDTO.setTelephone(demandeur_telephone);
-            demandeDTO.setIdNationalite(demandeur_nationalite);
-            demandeDTO.setDateNaissance(parseDateOrNull(demandeur_date_naissance));
-            demandeDTO.setLieuNaissance(demandeur_lieu_naissance);
-            demandeDTO.setIdSituationMatrimoniale(demandeur_situation);
-            demandeDTO.setAdresseMadagascar(demandeur_adresse);
-            
-            demandeDTO.setNumeroPasseport(passeport_numero);
-            demandeDTO.setDateDelivrancePasseport(parseDateOrNull(passeport_date_delivrance));
-            demandeDTO.setDateExpirationPasseport(parseDateOrNull(passeport_date_expiration));
-            
-            demandeDTO.setReferenceVisa(visa_reference);
-            demandeDTO.setDateEntreeVisa(parseDateOrNull(visa_date_entree));
-            demandeDTO.setLieuEntreeVisa(visa_lieu_entree);
-            demandeDTO.setDateExpirationVisa(parseDateOrNull(visa_date_expiration));
-            
-            demandeDTO.setIdTypeDemande(type_demande);
-            demandeDTO.setIdTypeMotif(type_motif);
-            
-            // Convertir les IDs de documents en liste
+            dto.setNom(demandeur_nom);
+            dto.setPrenom(demandeur_prenom);
+            dto.setNomNaissance(demandeur_nom_naissance);
+            dto.setEmail(demandeur_email);
+            dto.setTelephone(demandeur_telephone);
+            dto.setIdNationalite(demandeur_nationalite);
+            dto.setDateNaissance(parseDateOrNull(demandeur_date_naissance));
+            dto.setLieuNaissance(demandeur_lieu_naissance);
+            dto.setIdSituationMatrimoniale(demandeur_situation);
+            dto.setAdresseMadagascar(demandeur_adresse);
+            dto.setNumeroPasseport(passeport_numero);
+            dto.setDateDelivrancePasseport(parseDateOrNull(passeport_date_delivrance));
+            dto.setDateExpirationPasseport(parseDateOrNull(passeport_date_expiration));
+            dto.setReferenceVisa(visa_reference);
+            dto.setDateEntreeVisa(parseDateOrNull(visa_date_entree));
+            dto.setLieuEntreeVisa(visa_lieu_entree);
+            dto.setDateExpirationVisa(parseDateOrNull(visa_date_expiration));
+            dto.setIdTypeDemande(type_demande);
+            dto.setIdTypeMotif(type_motif);
+
             if (documents != null && documents.length > 0) {
-                java.util.List<Integer> pieceIds = new java.util.ArrayList<>();
-                for (String docId : documents) {
-                    pieceIds.add(Integer.parseInt(docId));
-                }
-                demandeDTO.setPiecesPresentes(pieceIds);
+                java.util.List<Integer> ids = new java.util.ArrayList<>();
+                for (String d : documents)
+                    ids.add(Integer.parseInt(d));
+                dto.setPiecesPresentes(ids);
             }
-            
-            // Créer la demande
-            ValidationErrorDTO resultat = demandeService.creerNouvelleDemande(demandeDTO);
-            
-            if (resultat.isSuccess()) {
-                // Passer les infos de la demande créée à la page de confirmation
-                model.addAttribute("demandeId", resultat.getDemandeId());
-                model.addAttribute("createdDate", java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+
+            ValidationErrorDTO res = demandeService.creerNouvelleDemande(dto);
+
+            if (res.isSuccess()) {
+                model.addAttribute("demandeId", res.getDemandeId());
+                model.addAttribute("createdDate", java.time.LocalDate.now()
+                        .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
                 return "demande/confirmation";
             } else {
-                // Afficher les erreurs détaillées
-                model.addAttribute("erreur", resultat.getMessage());
-                model.addAttribute("erreurs", resultat.getErrors());
-                
-                // Passer le DTO avec les valeurs saisies pour les restaurer
-                model.addAttribute("demandeDTO", demandeDTO);
+                model.addAttribute("erreur", res.getMessage());
+                model.addAttribute("erreurs", res.getErrors());
+                model.addAttribute("demandeDTO", dto);
                 chargerDonneesReference(model);
-                
                 return "demande/formulaire";
             }
-            
+
+        } catch (ValidationException e) {
+            model.addAttribute("erreur", e.getMessage());
+            model.addAttribute("erreurs", e.getErrors());
+            model.addAttribute("demandeDTO", dto);
+            chargerDonneesReference(model);
+            return "demande/formulaire";
         } catch (Exception e) {
-            model.addAttribute("erreur", "Une erreur est survenue. Veuillez verifier les champs saisis puis reessayer.");
-            model.addAttribute("demandeDTO", demandeDTO);
+            model.addAttribute("erreur", "Une erreur inattendue est survenue.");
+            model.addAttribute("erreurs", java.util.List.of("Type: " + e.getClass().getSimpleName(),
+                    "Détail: " + (e.getMessage() != null ? e.getMessage() : "(sans message)")));
+            model.addAttribute("demandeDTO", dto);
             chargerDonneesReference(model);
             return "demande/formulaire";
         }
     }
 
     private void chargerDonneesReference(Model model) {
-        List<Nationalite> nationalites = nationaliteService.findAll();
-        List<SituationMatrimoniale> situations = situationMatrimonialeService.findAll();
-        List<TypeMotif> typeMotifs = typeMotifService.findAll();
-        List<TypeDocument> documentsCommuns = typeDocumentService.findDocumentsCommuns();
-        List<TypeDocument> documentsSpecifiques = typeDocumentService.findDocumentsSpecifiques();
-        List<TypeDemande> typesDemande = typeDemandeService.findAll();
-
-        model.addAttribute("nationalites", nationalites);
-        model.addAttribute("situations", situations);
-        model.addAttribute("typeMotifs", typeMotifs);
-        model.addAttribute("documentsCommuns", documentsCommuns);
-        model.addAttribute("documentsSpecifiques", documentsSpecifiques);
-        model.addAttribute("typesDemande", typesDemande);
+        model.addAttribute("nationalites", nationaliteService.findAll());
+        model.addAttribute("situations", situationMatrimonialeService.findAll());
+        model.addAttribute("typeMotifs", typeMotifService.findAll());
+        model.addAttribute("documentsCommuns", typeDocumentService.findDocumentsCommuns());
+        model.addAttribute("documentsSpecifiques", typeDocumentService.findDocumentsSpecifiques());
+        model.addAttribute("typesDemande", typeDemandeService.findAll());
     }
 
-    private LocalDate parseDateOrNull(String value) {
-        if (value == null || value.isBlank()) {
+    private LocalDate parseDateOrNull(String v) {
+        if (v == null || v.isBlank())
             return null;
-        }
         try {
-            return LocalDate.parse(value);
-        } catch (Exception ex) {
+            return LocalDate.parse(v);
+        } catch (Exception e) {
             return null;
         }
     }
@@ -173,5 +159,102 @@ public class DemandeController {
     @GetMapping("/confirmation")
     public String afficherConfirmation() {
         return "demande/confirmation";
+    }
+
+    // ============ ENDPOINTS SPRINT 3 - DOCUMENT SCANNING ============
+
+    /**
+     * Affiche le détail d'une demande avec ses documents
+     */
+    @GetMapping("/{id}/detail")
+    public String afficherDetail(
+            @PathVariable Integer id,
+            Model model) {
+        try {
+            Demande demande = demandeRepository.findById(id)
+                    .orElseThrow(() -> new ValidationException("Demande non trouvée",
+                            List.of("La demande " + id + " n'existe pas")));
+            
+            String resumePlétude = documentScanValidationService.getResumePlétude(id);
+            String completude = documentScanValidationService.verifierCompleteudeDossierScan(id);
+            
+            model.addAttribute("demande", demande);
+            model.addAttribute("resumePlétude", resumePlétude);
+            model.addAttribute("completude", completude);
+            
+            return "demande/detail";
+        } catch (ValidationException e) {
+            model.addAttribute("erreur", e.getMessage());
+            return "erreur";
+        }
+    }
+
+    /**
+     * Liste tous les scans pour une demande (API REST)
+     */
+    @GetMapping("/{id}/scans")
+    @ResponseBody
+    public ResponseEntity<List<DocumentScan>> listerScans(@PathVariable Integer id) {
+        List<DocumentScan> scans = documentScanService.listerScansPourDemande(id);
+        return ResponseEntity.ok(scans);
+    }
+
+    /**
+     * Upload un fichier pour une pièce spécifique
+     */
+    @PostMapping("/{idDemande}/piece/{idPiece}/upload")
+    @ResponseBody
+    public ResponseEntity<ValidationErrorDTO> uploadFichier(
+            @PathVariable Integer idDemande,
+            @PathVariable Integer idPiece,
+            @RequestParam("fichier") MultipartFile fichier,
+            @RequestParam(value = "numeroPage", required = false) Integer numeroPage) {
+        
+        if (numeroPage == null) {
+            numeroPage = 1;
+        }
+        
+        ValidationErrorDTO result = documentScanService.sauvegarderFichier(
+                fichier, idPiece, numeroPage);
+        
+        if (result.isSuccess()) {
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.badRequest().body(result);
+        }
+    }
+
+    /**
+     * Supprime un scan de document
+     */
+    @DeleteMapping("/{idDemande}/scan/{idDocumentScan}")
+    @ResponseBody
+    public ResponseEntity<ValidationErrorDTO> supprimerScan(
+            @PathVariable Integer idDemande,
+            @PathVariable Integer idDocumentScan) {
+        
+        ValidationErrorDTO result = documentScanService.supprimerFichierScan(idDocumentScan);
+        
+        if (result.isSuccess()) {
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.badRequest().body(result);
+        }
+    }
+
+    /**
+     * Transition vers SCAN_TERMINE (finalise la saisie de documents)
+     */
+    @PostMapping("/{id}/scan/terminer")
+    @ResponseBody
+    public ResponseEntity<ValidationErrorDTO> terminerScan(@PathVariable Integer id) {
+        
+        ValidationErrorDTO result = demandeStatusService.transitionnerVersScanTermine(id);
+        
+        if (result.isSuccess()) {
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.badRequest().body(result);
+        }
     }
 }

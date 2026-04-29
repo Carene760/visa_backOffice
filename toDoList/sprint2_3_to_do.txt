@@ -1,7 +1,7 @@
 Sprint 2 :
 
 TEAM LEAD : 3273
-DEV1 : 3265
+DEV1 : 
 DEV2 : 
 
 
@@ -32,6 +32,7 @@ DEV1 :
 					TypeVisa typeVisa = typeVisaRepository.findNormalizedByLibelle("TRANSFORMABLE")
 					                    .or(() -> typeVisaRepository.findFirstByLibelleIgnoreCase("TRANSFORMABLE"))
 					                    .orElse(null);
+                                        
 				- Dans DemandeService.java Ajouter le debug explicite dans DemandeService.java (liste des valeurs en base) :
 					List<String> typeVisaLibelles = typeVisaRepository.findAll().stream()           => ligne 242
 					                        .map(TypeVisa::getLibelle)                              => ligne 243
@@ -76,8 +77,9 @@ DEV1 :
                         @ManyToOne(fetch=FetchType.LAZY)
                         @JoinColumn(name="id_demande",nullable=false,foreignKey=@ForeignKey(name="visa_id_demande_fkey"))
                         private Demande demande;
-                        @Column(name="id_demandeur",nullable=false)
-                        private Integer idDemandeur;
+                        @ManyToOne(fetch = FetchType.LAZY)
+                        @JoinColumn(name = "id_demandeur", nullable = false, foreignKey = @ForeignKey(name = "visa_id_demandeur_fkey"))
+                        private Demandeur demandeur;
                         @Column(name="date_emission")
                         private LocalDateTime dateEmission;
                         @Column(name="date_modification")
@@ -344,7 +346,7 @@ DEV1 :
 				- [Entites : scripts data/reset] Mettre a jour insertion_reference_sprint1.sql avec TRUNCATE complet + RESTART IDENTITY CASCADE + reinserts de reference
 				- [Entites : scripts reset] Ajouter dans reset.sql :
 					TRUNCATE TABLE type_visa RESTART IDENTITY CASCADE;
-				- [Entites : type_visa] Verifier que TRANSFORMABLE est bien insere dans les donnees de reference.
+				- table type_visa : Verifier que TRANSFORMABLE est bien insere dans les donnees de reference.
 
 			Nationalite non prise en charge
 				- DemandeController.java à copie coller directement :
@@ -546,6 +548,17 @@ DEV1 :
                         CHECK (date_expiration >= date_entree)
                     );
 
+                - creation nouvelle table decision_document :
+                CREATE TABLE decision_document (
+                    id SERIAL PRIMARY KEY,
+                    id_demande INT FK,
+                    type_decision VARCHAR (AUTO_APPROVAL_DUPLICATA, MANUAL_REVIEW, REFUSED),
+                    criteres_appliques TEXT (JSON ou énumération),
+                    decision_automatique BOOLEAN,
+                    date_decision TIMESTAMP,
+                    raison_rejet VARCHAR(nullable)
+                );
+
 			Reference data Sprint 2
 				- [Entites : type_demande] Inserer : NOUVEAU_TITRE, DUPLICATA (sous-type porte par sous_type_demande).
 				- [Entites : statut_demande] Inserer : DOSSIER_CREE, SCAN_TERMINE, VISA_APPROUVEE, REFUSE.
@@ -568,6 +581,88 @@ DEV1 :
 			Contraintes SQL supplementaires
 				- [Entites : schema] Modifier id_situation_matrimoniale en NOT NULL si valide metierement(par rapport à metier) avec le formulaire et la migration.
 				- [Entites : schema] Ajouter FK (id_demandeur) REFERENCES demandeur(id) ON DELETE CASCADE dans init.sql
+
+--------
+    Sprint3 :
+    A) Infrastructure (à faire en premier)
+            Nouvelles tables
+                - [Entites : document_scan] Créer table document_scan :
+                    - id SERIAL PRIMARY KEY
+                    - id_piece_a_fournir INT FK → piece_a_fournir(id)
+                    - chemin_fichier VARCHAR(500) (path relatif ou S3)
+                    - nom_fichier VARCHAR(255)
+                    - type_mime VARCHAR(50) (application/pdf, image/jpeg, etc.)
+                    - taille_fichier INT (bytes)
+                    - numero_page INT (page 1, 2, 3 pour multi-pages)
+                    - date_upload TIMESTAMP DEFAULT NOW()
+                    - date_modification TIMESTAMP
+                    
+            Modification de table existante
+                - [Entites : piece_a_fournir] Ajouter colonnes :
+                    - scan_complete BOOLEAN DEFAULT FALSE
+                    - date_scan_complete TIMESTAMP (nullable)
+                    
+            Migration de données
+                - [Entites : script] Créer migration pour ajouter colonnes dans piece_a_fournir
+                - [Entites : script] Réinitialiser statut scan_complete = FALSE pour tous les documents
+                
+        B) Services métier (scan)
+            Service d'upload et gestion des fichiers
+                - [Entites : service] Créer DocumentScanService :
+                    - uploadFichierPourPiece(idPiece, fichier, numeroPage) → retourne ValidationErrorDTO
+                    - validerFichier(fichier) → vérifier type MIME, taille max (ex: 10MB)
+                    - sauvegarderFichier(fichier) → générer chemin unique, persister en disque ou cloud
+                    - supprimerFichierScan(idDocumentScan) → delete fichier + entrée DB
+                    - listerScansPourPiece(idPiece) → retourner liste d'uploads par documento
+                    - listerScansPourDemande(idDemande) → retourner tous scans pour demande
+                    
+            Service de transition de statut
+                - [Entites : service] Modifier DemandeStatusService :
+                    - Ajouter méthode transitionnerVersScanTermine(idDemande) :
+                        - Vérifier que demande est en DOSSIER_CREE
+                        - Vérifier que tous les documents obligatoires ont au moins 1 scan
+                        - Vérifier que au moins 1 optionnel est scanné OU tous les obligatoires sont complets
+                        - Changer statut → SCAN_TERMINE
+                        - Créer historique
+                        - Journaliser événement
+                        - Retourner ValidationErrorDTO
+                        
+            Validations métier
+                - [Entites : service] Créer DocumentScanValidationService :
+                    - verifierTousLesObligatoiresScannes(idDemande) → retourner liste des manquants
+                    - verifierCompleteudeDossierScan(idDemande) → retourner statut (complet/partiel/vide)
+                    - validerAvatTransitionScanTermine(idDemande) → vérifier tous critères
+                    
+            Stockage des fichiers
+                - [Entites : configuration] Ajouter dans application.properties :
+                    - upload.dir=/uploads/documents (ou S3 config)
+                    - upload.max.size=10485760 (10MB)
+                    - upload.allowed.types=pdf,jpg,jpeg,png,gif
+                    
+        C) Endpoints (controller)
+            Détail demande avec liste de scans
+                - [Entites : endpoint] GET /demande/{id}/detail → afficher documents + scans existants
+                - [Entites : endpoint] GET /demande/{id}/scans → retourner JSON liste des scans
+                
+            Upload de fichiers
+                - [Entites : endpoint] POST /demande/{idDemande}/piece/{idPiece}/upload
+                    - Accepter multipart/form-data (fichier + numeroPage optionnel)
+                    - Valider fichier
+                    - Appeler DocumentScanService.uploadFichierPourPiece()
+                    - Retourner ValidationErrorDTO
+                    
+            Suppression/modification de scan
+                - [Entites : endpoint] DELETE /demande/{idDemande}/scan/{idDocumentScan}
+                    - Vérifier que demande est en DOSSIER_CREE (avant SCAN_TERMINE)
+                    - Appeler DocumentScanService.supprimerFichierScan()
+                    - Retourner succès/erreur
+                    
+            Validation et marquer "Scan Terminé"
+                - [Entites : endpoint] POST /demande/{idDemande}/scan/terminer
+                    - Appeler DemandeStatusService.transitionnerVersScanTermine()
+                    - Si erreur → retourner messages clairs (doc obligatoire manquant, etc.)
+                    - Si succès → changer statut, bloquer futures modifications
+                    - Retourner confirmation + redirection
 
 DEV2 :
 	Branche dev2 : sprint2/2/branche2_dev2_sans_donnee_interieur
@@ -609,19 +704,22 @@ DEV2 :
                 Le choix avec/sans données antérieures est piloté par une case à cocher. La recherche dans les données existantes sert uniquement à préremplir et à faciliter la saisie, pas à déterminer à elle seule le scénario.
 
 		B) Statuts, blocages, modification
-			Regles obligatoires d'enregistrement
-				- [Entites : pieces, validation] Si obligatoire manquant -> enregistrement refuse.
-				- [Entites : pieces, statut] Si obligatoires OK et optionnelles manquantes -> enregistrement autorise + statut DOSSIER_CREE.
-				- [Entites : statut] Optionnelles manquantes ne bloquent pas DOSSIER_CREE.
 				- [Entites : statut] Optionnelles manquantes bloquent passage au statut suivant.
 
 			Regles de modification
-				- [Entites : demande, statut] Modification autorisee tant que statut DOSSIER_CREE.
+				- [Entites : demande, statut] Modification autorisee tant que statut encore actuelle genre ne change pas
+                encore ou ne passe pas encore d'etape
 				- [Entites : demande, statut] Apres statut superieur, modification refusee.
 				- [Entites : UI] Creer page de modification pour demandes en statut DOSSIER_CREE.
 
 			Alertes utilisateur
-				- [Entites : UI] Afficher alertes claires : obligatoire manquant, optionnelle manquante, complet.
+				- [Entites : UI] Afficher alertes claires : 
+                    . obligatoire manquant
+                        Dire exactement quel document obligatoire manque
+                    . optionnelle manquante
+                        Indiquer que les optionnels ne bloquent pas, mais pour info
+                    . complet
+                        Confirmer que le dossier est complet avant soumission
 
 		C) PDF de controle / recepisse
 			- [Entites : recu] Generer PDF apres saisie.
@@ -682,3 +780,113 @@ DEV2 :
 
             Sprint 2: implementer le refus avant SCAN_TERMINE uniquement (statut REFUSE + logique associee).
             Les autres cas de refus metier avances seront traites en Sprint 3.
+
+    --------
+    Sprint3 :
+    A) Page de Scan et Upload (UI)
+        
+            Affichage list des documents + statut scan
+                - [Entites : page] Créer/modifier page detail_demande.jsp :
+                    - Afficher tous les documents (communs + spécifiques + type_motif)
+                    - Pour chaque document :
+                        - Label + "Obligatoire" ou "Optionnel"
+                        - Statut : "Non scanné" (rouge) / "1 scan" (orange) / "Complet" (vert)
+                        - Nombre de fichiers uploadés
+                    - Section "Résumé de complétude" (ex: 8/10 obligatoires, 2/5 optionnels)
+                    - Zone de statut de la demande : "DOSSIER_CREE" / "SCAN_TERMINE"
+                    
+            Formulaire d'upload
+                - [Entites : formulaire] Créer zone upload pour chaque document :
+                    - Drag & drop OU bouton "Choisir fichier"
+                    - Accepter (PDF, JPG, PNG, GIF)
+                    - Afficher "Numéro de page" (optionnel pour multi-pages)
+                    - Bouton "Uploader"
+                    - Message de progression (upload en cours)
+                    
+            Aperçu des fichiers uploadés
+                - [Entites : UI] Pour chaque document avec scan(s) :
+                    - Lister les fichiers : "document_scan_001.pdf" (uploaded 15 Apr, 2.3 MB)
+                    - Bouton "Aperçu" ou "Télécharger" (si besoin de vérifier)
+                    - Bouton "Supprimer" (si demande en DOSSIER_CREE)
+                    - Indicateur : "✓ page 1 de 3" / "✓ page 2 de 3"
+                    
+            Gestion des erreurs d'upload
+                - [Entites : UI] Afficher messages :
+                    - "Fichier trop volumineux (max 10 MB)"
+                    - "Format non autorisé (pdf, jpg, png, gif uniquement)"
+                    - "Erreur serveur : upload échoué"
+                    - "Fichier uploadé avec succès"
+                    
+        B) Workflow d'upload partiel
+        
+            Sauvegarde progressive
+                - [Entites : UI] Après chaque upload :
+                    - Actualiser la liste des fichiers uploadés
+                    - Afficher "Fichier sauvegardé"
+                    - Recalculer le statut de complétude global
+                    - NE PAS marquer automatiquement "Scan Terminé"
+                    
+            Retour à la page
+                - [Entites : UI] Permettre fermeture/retour page sans cliquer "Scan Terminé" :
+                    - Uploads existants restent sauvegardés
+                    - Message : "Uploads sauvegardés partiellement"
+                    - Lien "Retour à la demande"
+                    
+            Reprendre upload plus tard
+                - [Entites : UI] À chaque affichage de detail_demande :
+                    - Charger liste des uploads existants
+                    - Afficher documents restants à scanner
+                    - Permettre d'uploader les documents manquants
+                    - Permettre de re-upload/modifier les existants
+                    
+        C) Bouton "Scan Terminé"
+        
+            Validation avant transition
+                - [Entites : UI] Avant d'afficher bouton "Terminer Scan" :
+                    - Vérifier : tous obligatoires ont ≥ 1 scan ?
+                    - Si NON → désactiver bouton + message : "Scannez d'abord les documents obligatoires manquants"
+                    - Si OUI → bouton actif + message : "Cliquez pour verser SCAN_TERMINE (modification bloquée après)"
+                    
+            Confirmation utilisateur
+                - [Entites : modal] Confirmation avant clic :
+                    - "Êtes-vous sûr ? Après SCAN_TERMINE, vous ne pourrez plus modifier les infos de la demande"
+                    - Bouton "Annuler" / "Confirmer"
+                    
+            Appel API et transition
+                - [Entites : JS] Au clic "Confirmer" :
+                    - POST /demande/{idDemande}/scan/terminer
+                    - Si erreur → afficher message (doc obligatoire manquant, etc.)
+                    - Si succès → afficher "Scan terminé" + redirection vers detail_demande
+                    - Désactiver tous les boutons d'upload après transition
+                    
+        D) Blocage après SCAN_TERMINE
+        
+            Masquage éléments d'upload
+                - [Entites : UI] Si statut = SCAN_TERMINE :
+                    - Masquer tous les boutons "Uploader"
+                    - Masquer tous les boutons "Supprimer scan"
+                    - Masquer formulaire d'upload
+                    - Afficher : "Les uploads ne sont plus disponibles (statut SCAN_TERMINE)"
+                    - Afficher historique des scans (lecture seule)
+                    
+            Masquage formulaire de demande
+                - [Entites : UI] Si statut > DOSSIER_CREE :
+                    - Masquer bouton "Modifier demande"
+                    - Message : "Modification non autorisée après SCAN_TERMINE"
+                    - Afficher les données en lecture seule
+                    
+        E) Alertes et Messages Utilisateur
+        
+            Messages clairs
+                - [Entites : UI] Afficher statuts :
+                    - "Document obligatoire manquant : [Nom du document]"
+                    - "Documents optionnels manquants : [liste]"
+                    - "Complétude : 8/10 obligatoires, 3/5 optionnels"
+                    - "Scan partiellement terminé (4 fichiers uploadés)"
+                    - "Scan complètement terminé"
+                    
+            Notifications progressives
+                - [Entites : UI] Au fur et à mesure :
+                    - Après 1️⃣ upload : "1/10 obligatoires scannés"
+                    - Après 5️⃣ uploads : "5/10 obligatoires scannés - 50% complet"
+                    - Quand tous obligatoires OK : "✓ Tous les obligatoires sont scannés"
