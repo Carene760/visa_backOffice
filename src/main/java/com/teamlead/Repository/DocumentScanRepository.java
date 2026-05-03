@@ -11,7 +11,8 @@ import com.teamlead.Model.DocumentScan;
 @Repository
 public interface DocumentScanRepository extends JpaRepository<DocumentScan, Integer> {
     
-    List<DocumentScan> findByIdPieceAFournir(Integer idPieceAFournir);
+    @Query("SELECT ds FROM DocumentScan ds WHERE ds.pieceAFournir.id = :idPieceAFournir")
+    List<DocumentScan> findByIdPieceAFournir(@Param("idPieceAFournir") Integer idPieceAFournir);
     
     @Query("SELECT ds FROM DocumentScan ds WHERE ds.pieceAFournir.demande.id = :idDemande ORDER BY ds.dateUpload DESC")
     List<DocumentScan> findByIdDemande(@Param("idDemande") Integer idDemande);

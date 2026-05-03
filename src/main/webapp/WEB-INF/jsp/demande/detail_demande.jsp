@@ -272,6 +272,66 @@
             border-bottom: none;
         }
 
+        .piece-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 14px;
+            background: #fff;
+        }
+
+        .piece-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .piece-meta {
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .scan-list {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #d8e0ea;
+        }
+
+        .scan-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            font-size: 13px;
+        }
+
+        .scan-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-mini {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .btn-mini.primary {
+            background: #3498db;
+            color: #fff;
+        }
+
+        .btn-mini.danger {
+            background: #e74c3c;
+            color: #fff;
+        }
+
         .piece-icon {
             display: inline-block;
             width: 20px;
@@ -343,7 +403,7 @@
                 <strong>Dossier #${demande.id}</strong>
                 <span> | Créé le ${demande.dateDemande}</span>
                 <span class="status-badge ${fn:toLowerCase(demande.statutDemande.libelle) == 'dossier_cree' ? 'status-dossier-cree' : fn:toLowerCase(demande.statutDemande.libelle) == 'scan_termine' ? 'status-scan-termine' : fn:toLowerCase(demande.statutDemande.libelle) == 'visa_approuvee' ? 'status-visa-approuvee' : 'status-refuse'}">
-                    ${demande.statutDemande.libelle}
+                    ${demande.statutDemande != null ? demande.statutDemande.libelle : 'INCONNU'}
                 </span>
             </div>
         </header>
@@ -473,27 +533,67 @@
                 </c:if>
             </div>
 
-            <!-- Card 5: Documents Justificatifs -->
+            <!-- Card 5: Documents Justificatifs avec Upload -->
             <div class="card">
                 <h2>Documents Justificatifs</h2>
                 <c:if test="${not empty pieces}">
-                    <div class="pieceslist">
-                        <ul>
-                            <c:forEach var="piece" items="${pieces}">
-                                <li>
-                                    <span class="piece-icon ${piece.typeDocument.obligatoire ? 'obligatoire' : 'optionnelle'}">
-                                        ${piece.present ? '✓' : '○'}
-                                    </span>
-                                    <strong>${piece.typeDocument.libelle}</strong>
-                                    <span style="font-size: 12px; color: #999;">
-                                        (${piece.typeDocument.obligatoire ? 'obligatoire' : 'optionnel'})
-                                    </span>
-                                    <span style="float: right; font-size: 12px; color: #27ae60;">
-                                        ${piece.present ? 'Reçu' : 'Manquant'}
-                                    </span>
-                                </li>
-                            </c:forEach>
-                        </ul>
+                    <div class="documents-table">
+                        <c:forEach var="piece" items="${pieces}">
+                            <div class="piece-card">
+                                <div class="piece-header">
+                                    <div>
+                                        <strong>${piece.typeDocument.libelle}</strong>
+                                        <div class="piece-meta">
+                                            ${piece.typeDocument.obligatoire ? 'OBLIGATOIRE' : 'OPTIONNEL'} · ${piece.scanComplete ? 'Reçu' : 'En attente'}
+                                        </div>
+                                    </div>
+                                    <div class="scan-actions">
+                                        <button type="button"
+                                                class="btn-mini primary"
+                                                data-upload-url="/demande/${demande.id}/piece/${piece.id}/upload"
+                                                data-piece-label="${piece.typeDocument.libelle}"
+                                                onclick="openUploadModal(this)">
+                                            📤 Upload
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="scan-list">
+                                    <c:set var="scans" value="${scansByPiece[piece.id]}" />
+                                    <c:if test="${not empty scans}">
+                                        <c:forEach var="scan" items="${scans}">
+                                            <div class="scan-item">
+                                                <div>
+                                                    <strong>${scan.nomFichier}</strong>
+                                                    <div class="piece-meta">${scan.typeMime} · ${scan.dateUpload}</div>
+                                                </div>
+                                                <button type="button"
+                                                        class="btn-mini danger"
+                                                        data-delete-url="/demande/${demande.id}/scan/${scan.id}"
+                                                        onclick="removeScan(this)">
+                                                    Retirer
+                                                </button>
+                                            </div>
+                                        </c:forEach>
+                                    </c:if>
+                                    <c:if test="${empty scans}">
+                                        <div class="piece-meta">Aucun fichier uploadé.</div>
+                                    </c:if>
+                                </div>
+                            </div>
+                        </c:forEach>
+                    </div>
+
+                    <!-- Upload Modal -->
+                    <div id="uploadModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+                        <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); max-width: 400px; width: 90%;">
+                            <h3 id="modalTitle" style="margin: 0 0 20px 0; color: #333;">Upload Document</h3>
+                            <input type="file" id="uploadFile" style="display: block; width: 100%; margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;" accept=".pdf,.jpg,.jpeg,.png">
+                            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                                <button onclick="closeUploadModal()" style="padding: 8px 16px; background: #ecf0f1; border: none; border-radius: 4px; cursor: pointer;">Annuler</button>
+                                <button onclick="submitUpload()" style="padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Envoyer</button>
+                            </div>
+                        </div>
                     </div>
                 </c:if>
                 <c:if test="${empty pieces}">
@@ -538,5 +638,85 @@
             <a href="/demande/nouveau" class="btn secondary">Nouvelle Demande</a>
         </div>
     </div>
+
+    <script>
+        let currentUploadUrl = null;
+
+        function openUploadModal(button) {
+            currentUploadUrl = button.getAttribute('data-upload-url');
+            document.getElementById('modalTitle').textContent = 'Upload: ' + button.getAttribute('data-piece-label');
+            document.getElementById('uploadModal').style.display = 'flex';
+            document.getElementById('uploadFile').value = '';
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').style.display = 'none';
+            currentUploadUrl = null;
+        }
+
+        function removeScan(button) {
+            const deleteUrl = button.getAttribute('data-delete-url');
+            if (!deleteUrl || !confirm('Retirer ce fichier ?')) {
+                return;
+            }
+
+            fetch(deleteUrl, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Erreur: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert('Erreur lors de la suppression');
+                });
+        }
+
+        function submitUpload() {
+            const fileInput = document.getElementById('uploadFile');
+            if (!fileInput.files.length) {
+                alert('Veuillez sélectionner un fichier');
+                return;
+            }
+
+            if (!currentUploadUrl) {
+                alert('URL d\'upload introuvable');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('fichier', fileInput.files[0]);
+
+            fetch(currentUploadUrl, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Document uploadé avec succès!');
+                    closeUploadModal();
+                    // Rafraîchir la page pour voir les changements
+                    location.reload();
+                } else {
+                    alert('Erreur: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                alert('Erreur lors de l\'upload');
+            });
+        }
+
+        // Fermer modal au clic en dehors
+        document.getElementById('uploadModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeUploadModal();
+            }
+        });
+    </script>
 </body>
 </html>

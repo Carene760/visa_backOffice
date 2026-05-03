@@ -56,6 +56,9 @@ public class DemandeStatusService {
 
             // Vérifier le statut actuel
             StatutDemande statutActuel = demande.getStatutDemande();
+            if (statutActuel != null && "SCAN_TERMINE".equalsIgnoreCase(statutActuel.getLibelle())) {
+                return new ValidationErrorDTO(true, "La demande est déjà au statut SCAN_TERMINE");
+            }
             if (statutActuel == null || !statutActuel.getLibelle().equals("DOSSIER_CREE")) {
                 return new ValidationErrorDTO(false,
                         "Erreur: Le statut actuel n'est pas DOSSIER_CREE. Transition impossible.");

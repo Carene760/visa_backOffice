@@ -1,5 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -387,7 +388,7 @@
                         <div class="checkbox-group">
                             <c:forEach var="doc" items="${documentsCommuns}">
                                 <div class="checkbox-item">
-                                    <input type="checkbox" id="doc_${doc.id}" name="documents" value="${doc.id}">
+                                    <input type="checkbox" id="doc_${doc.id}" name="documents" value="${doc.id}" <c:if test="${not empty demandeDTO.piecesPresentes and demandeDTO.piecesPresentes.contains(doc.id)}">checked</c:if>>
                                     <label for="doc_${doc.id}" style="margin-bottom: 0; font-weight: normal;">
                                         ${doc.libelle} ${doc.obligatoire ? '(obligatoire)' : '(optionnel)'}
                                     </label>
@@ -402,7 +403,7 @@
                         <div class="checkbox-group">
                             <c:forEach var="doc" items="${documentsSpecifiques}">
                                 <div class="checkbox-item">
-                                    <input type="checkbox" id="doc_${doc.id}" name="documents" value="${doc.id}">
+                                    <input type="checkbox" id="doc_${doc.id}" name="documents" value="${doc.id}" <c:if test="${not empty demandeDTO.piecesPresentes and demandeDTO.piecesPresentes.contains(doc.id)}">checked</c:if>>
                                     <label for="doc_${doc.id}" style="margin-bottom: 0; font-weight: normal;">
                                         ${doc.libelle} ${doc.obligatoire ? '(obligatoire)' : '(optionnel)'}
                                     </label>

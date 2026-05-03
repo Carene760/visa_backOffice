@@ -9,13 +9,16 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
 import com.teamlead.DTO.ValidationErrorDTO;
 import com.teamlead.Exception.ValidationException;
+import com.teamlead.Model.Demande;
 import com.teamlead.Model.DocumentScan;
 import com.teamlead.Model.PieceAFournir;
 import com.teamlead.Repository.DocumentScanRepository;
@@ -30,7 +33,7 @@ public class DocumentScanService {
     @Autowired
     private PieceAFournirRepository pieceAFournirRepository;
 
-    @Value("${upload.dir:/uploads/documents}")
+    @Value("${upload.dir}")
     private String uploadDir;
 
     @Value("${upload.max.size:10485760}")
@@ -88,6 +91,16 @@ public class DocumentScanService {
                 return validation;
             }
 
+            // Une seule pièce = un seul scan actif; on remplace l'existant si besoin
+            List<DocumentScan> scansExistants = documentScanRepository.findByIdPieceAFournir(idPiece);
+            for (DocumentScan scanExistant : scansExistants) {
+                Path ancienChemin = Paths.get(scanExistant.getCheminFichier());
+                if (Files.exists(ancienChemin)) {
+                    Files.delete(ancienChemin);
+                }
+                documentScanRepository.delete(scanExistant);
+            }
+
             // Créer le répertoire s'il n'existe pas
             File directory = new File(uploadDir);
             if (!directory.exists()) {
@@ -104,6 +117,10 @@ public class DocumentScanService {
             // Créer l'enregistrement DocumentScan
             DocumentScan scan = new DocumentScan();
             scan.setPieceAFournir(piece);
+            // Lier au demande via la pièce
+            if (piece.getDemande() != null) {
+                scan.setDemande(piece.getDemande());
+            }
             scan.setCheminFichier(filePath.toString());
             scan.setNomFichier(fichier.getOriginalFilename());
             scan.setTypeMime(fichier.getContentType());
@@ -113,6 +130,12 @@ public class DocumentScanService {
             scan.setDateModification(LocalDateTime.now());
 
             documentScanRepository.save(scan);
+
+            piece.setPresent(Boolean.TRUE);
+            piece.setScanComplete(Boolean.TRUE);
+            piece.setDateScanComplete(LocalDateTime.now());
+            piece.setDateModification(LocalDateTime.now());
+            pieceAFournirRepository.save(piece);
 
             ValidationErrorDTO result = new ValidationErrorDTO(true, "Fichier uploadé avec succès");
             result.setDocumentScanId(scan.getId());
@@ -135,6 +158,14 @@ public class DocumentScanService {
                     .orElseThrow(() -> new ValidationException("Erreur: Scan non trouvé",
                             List.of("Le scan " + idDocumentScan + " n'existe pas")));
 
+            Demande demande = scan.getDemande() != null ? scan.getDemande()
+                : (scan.getPieceAFournir() != null ? scan.getPieceAFournir().getDemande() : null);
+            if (demande != null && demande.getStatutDemande() != null
+                && "SCAN_TERMINE".equalsIgnoreCase(demande.getStatutDemande().getLibelle())) {
+            return new ValidationErrorDTO(false,
+                "Suppression bloquée: la demande est déjà au statut SCAN_TERMINE. Utilisez une réouverture du dossier pour corriger un scan.");
+            }
+
             // Supprimer le fichier physique
             Path filePath = Paths.get(scan.getCheminFichier());
             if (Files.exists(filePath)) {
@@ -143,6 +174,17 @@ public class DocumentScanService {
 
             // Supprimer l'enregistrement
             documentScanRepository.deleteById(idDocumentScan);
+
+            PieceAFournir piece = scan.getPieceAFournir();
+            if (piece != null) {
+                Integer remaining = documentScanRepository.countByIdPieceAFournir(piece.getId());
+                boolean hasRemaining = remaining != null && remaining > 0;
+                piece.setPresent(hasRemaining);
+                piece.setScanComplete(hasRemaining);
+                piece.setDateScanComplete(hasRemaining ? LocalDateTime.now() : null);
+                piece.setDateModification(LocalDateTime.now());
+                pieceAFournirRepository.save(piece);
+            }
 
             return new ValidationErrorDTO(true, "Fichier supprimé avec succès");
 

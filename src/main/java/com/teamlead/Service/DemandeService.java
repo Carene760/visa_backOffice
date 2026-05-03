@@ -33,7 +33,7 @@
                     @Autowired private MotifTransfertRepository motifTransfertRepository;
                     @Autowired private DemandeValidationService demandeValidationService;
                     @Autowired private DemandeStatusService demandeStatusService;
-                    @Autowired private RechercheAntecendentRepository rechercheAntecendentRepository;
+                    @Autowired private RechercheAntecedentRepository recherheAntecedentRepository;
                     @Autowired private SousTypeDemandeRepository sousTypeDemandeRepository;
                     @Autowired private CarteResidentRepository carteResidentRepository;
                     @Autowired private DecisionDocumentRepository decisionDocumentRepository;
@@ -159,7 +159,7 @@
                     PieceAFournir piece=new PieceAFournir();
                     piece.setDemande(demande);
                     piece.setTypeDocument(typeDocumentRepository.findById(id).orElseThrow(()->new ValidationException("Erreur doc",List.of("Doc inexistant "+id))));
-                    piece.setPresent(true);
+                    piece.setPresent(false);
                     piece.setDateDepot(LocalDateTime.now());
                     piece.setDateModification(LocalDateTime.now());
                     pieceAFournirRepository.save(piece);

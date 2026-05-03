@@ -48,12 +48,6 @@ public class CarteResident {
     @JoinColumn(name = "id_demande", nullable = false, foreignKey = @ForeignKey(name = "carte_resident_id_demande_fkey"))
     private Demande demande;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-
-    @ManyToOne
-    @JoinColumn(name = "id_demande", nullable = false, foreignKey = @ForeignKey(name = "carte_resident_id_demande_fkey"))
-    private Demande demande;
-
     @ManyToOne
     @JoinColumn(name = "id_passeport", nullable = false, foreignKey = @ForeignKey(name = "carte_resident_id_passeport_fkey"))
     private Passeport passeport;

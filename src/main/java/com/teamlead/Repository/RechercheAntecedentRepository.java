@@ -14,4 +14,6 @@ public interface RechercheAntecedentRepository extends JpaRepository<RechercheAn
     List<RechercheAntecedent> findByDemande(Demande demande);
     
     List<RechercheAntecedent> findByDemandeAndCritereRecherche(Demande demande, String critereRecherche);
+
+    
 }
