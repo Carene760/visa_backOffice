@@ -2,7 +2,7 @@
 INSERT INTO type_motif (libelle) VALUES ('TRAVAILLEUR'), ('INVESTISSEUR');
 
 -- statut_demande
-INSERT INTO statut_demande (libelle) VALUES ('DOSSIER_CREE');
+INSERT INTO statut_demande (libelle) VALUES ('DOSSIER_CREE'), ('SCAN_TERMINE');
 
 -- type_demande
 INSERT INTO type_demande (libelle) VALUES ('NOUVEAU_TITRE'), ('DUPLICATA'), ('TRANSFERT_VISA');
@@ -37,6 +37,13 @@ insert into nationalite (libelle) values ('FRANCAIS(E)'), ('ANGLOPHONE'), ('CHIN
 
 insert into type_visa(libelle) values ('TRANSFORMABLE');
 insert into type_visa(libelle) values ('VALIDE');
+
+
 insert into type_evenement(code) values ('CREATION DEMANDE');
 insert into type_evenement(code) values ('DUPLICATA');
 insert into type_evenement(code) values ('TRANSFERT_VISA');
+insert into type_evenement(code) values ('NOUVEAU_TITRE_SANS_DONNEE_ANTERIEURE');
+
+insert into motif_transfert(libelle) values ('CREATION DEMANDE');
+insert into motif_transfert(libelle) values ('PERTE OU VOL');
+insert into motif_transfert(libelle) values ('ENDOMMAGEMENT');

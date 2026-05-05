@@ -10,11 +10,14 @@ import org.springframework.stereotype.Service;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
+import com.itextpdf.layout.borders.Border;
+import com.itextpdf.layout.element.Cell;
+import com.itextpdf.layout.element.Div;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
-import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
+import com.itextpdf.layout.properties.VerticalAlignment;
 import com.teamlead.Model.Demande;
 import com.teamlead.Model.PieceAFournir;
 import com.teamlead.Repository.DemandeRepository;
@@ -46,48 +49,55 @@ public class GenerateurPDFService {
             PdfWriter writer = new PdfWriter(baos);
             PdfDocument pdfDoc = new PdfDocument(writer);
             Document document = new Document(pdfDoc);
+            document.setMargins(28, 28, 28, 28);
+
+            document.add(creerBlocEnTete(demande));
 
             // Titre
             Paragraph titre = new Paragraph("RÉCÉPISSÉ DE DEMANDE DE VISA")
-                    .setFontSize(20)
+                    .setFontSize(18)
                     .setBold()
                     .setTextAlignment(TextAlignment.CENTER)
-                    .setMarginBottom(5);
+                    .setMarginBottom(4);
             document.add(titre);
 
             // Date de génération
             Paragraph dateGen = new Paragraph("Généré le: " + java.time.LocalDateTime.now().format(DATETIME_FORMATTER))
-                    .setFontSize(10)
+                    .setFontSize(9)
                     .setTextAlignment(TextAlignment.RIGHT)
-                    .setMarginBottom(15);
+                    .setMarginBottom(10);
             document.add(dateGen);
 
             // Numéro de dossier
             Paragraph dossierNum = new Paragraph("Numéro de Dossier: #" + demande.getId())
-                    .setFontSize(12)
+                    .setFontSize(11)
                     .setBold()
-                    .setMarginBottom(15);
+                    .setMarginBottom(8);
             document.add(dossierNum);
 
             // Statut
             Paragraph statut = new Paragraph("Statut: " + demande.getStatutDemande().getLibelle())
-                    .setFontSize(11)
-                    .setMarginBottom(20);
+                    .setFontSize(10)
+                    .setMarginBottom(14);
             document.add(statut);
 
             // Section 1: État Civil
+            document.add(creerSectionTitre("SECTION 1: INFORMATIONS PERSONNELLES"));
             document.add(creerSectionEtatCivil(demande));
-            document.add(new Paragraph("\n"));
+            document.add(new Paragraph(" ").setMarginBottom(10));
 
             // Section 2: Passeport
+            document.add(creerSectionTitre("SECTION 2: INFORMATIONS PASSEPORT"));
             document.add(creerSectionPasseport(demande));
-            document.add(new Paragraph("\n"));
+            document.add(new Paragraph(" ").setMarginBottom(10));
 
             // Section 3: Visa
+            document.add(creerSectionTitre("SECTION 3: INFORMATIONS VISA"));
             document.add(creerSectionVisa(demande));
-            document.add(new Paragraph("\n"));
+            document.add(new Paragraph(" ").setMarginBottom(10));
 
             // Section 4: Justificatifs
+            document.add(creerSectionTitre("SECTION 4: JUSTIFICATIFS REÇUS"));
             document.add(creerSectionJustificatifs(demande));
 
             document.close();
@@ -102,20 +112,14 @@ public class GenerateurPDFService {
     /**
      * Section État Civil du récépissé
      */
-    private Paragraph creerSectionEtatCivil(Demande demande) {
-        Paragraph section = new Paragraph("SECTION 1: INFORMATIONS PERSONNELLES")
-                .setFontSize(12)
-                .setBold()
-                .setMarginBottom(10);
-
+    private Table creerSectionEtatCivil(Demande demande) {
         Table table = new Table(UnitValue.createPercentArray(2));
         table.setWidth(UnitValue.createPercentValue(100));
+        table.setKeepTogether(false);
 
-        // En-têtes
-        table.addCell(new Cell().add(new Paragraph("Champ").setBold()));
-        table.addCell(new Cell().add(new Paragraph("Valeur").setBold()));
+        table.addCell(cellHeader("Champ"));
+        table.addCell(cellHeader("Valeur"));
 
-        // Données
         addRow(table, "Nom", demande.getDemandeur().getNom());
         addRow(table, "Prénom", demande.getDemandeur().getPrenom());
         addRow(table, "Nom de Naissance", demande.getDemandeur().getNomNaissance() != null
@@ -132,35 +136,25 @@ public class GenerateurPDFService {
         addRow(table, "Téléphone", demande.getDemandeur().getTelephone());
         addRow(table, "Adresse", demande.getDemandeur().getAdresseMadagascar());
 
-        return new Paragraph().add(section).add(table);
+        return table;
     }
 
     /**
      * Section Passeport du récépissé
      */
-    private Paragraph creerSectionPasseport(Demande demande) {
-        Paragraph section = new Paragraph("SECTION 2: INFORMATIONS PASSEPORT")
-                .setFontSize(12)
-                .setBold()
-                .setMarginBottom(10);
-
+    private Table creerSectionPasseport(Demande demande) {
         Table table = new Table(UnitValue.createPercentArray(2));
         table.setWidth(UnitValue.createPercentValue(100));
+        table.setKeepTogether(false);
 
-        // En-têtes
-        table.addCell(new Cell().add(new Paragraph("Champ").setBold()));
-        table.addCell(new Cell().add(new Paragraph("Valeur").setBold()));
+        table.addCell(cellHeader("Champ"));
+        table.addCell(cellHeader("Valeur"));
 
-        // Données - Le Demandeur peut avoir des passeports
         String numeroPasseport = "-";
         String dateDelivrance = "-";
         String dateExpiration = "-";
 
-        // Pour Sprint 1/2, supposer un seul passeport par demandeur
-        // En production, il faudrait parcourir la liste des passeports
         if (demande.getDemandeur() != null) {
-            // Note: Accès direct au passeport via la relation - à adapter selon votre modèle
-            // Pour maintenant, afficher que le passeport n'est pas accessible
             numeroPasseport = "(Voir détails demandeur)";
         }
 
@@ -168,57 +162,43 @@ public class GenerateurPDFService {
         addRow(table, "Date Délivrance", dateDelivrance);
         addRow(table, "Date Expiration", dateExpiration);
 
-        return new Paragraph().add(section).add(table);
+        return table;
     }
 
     /**
      * Section Visa du récépissé
      */
-    private Paragraph creerSectionVisa(Demande demande) {
-        Paragraph section = new Paragraph("SECTION 3: INFORMATIONS VISA")
-                .setFontSize(12)
-                .setBold()
-                .setMarginBottom(10);
-
+    private Table creerSectionVisa(Demande demande) {
         Table table = new Table(UnitValue.createPercentArray(2));
         table.setWidth(UnitValue.createPercentValue(100));
+        table.setKeepTogether(false);
 
-        // En-têtes
-        table.addCell(new Cell().add(new Paragraph("Champ").setBold()));
-        table.addCell(new Cell().add(new Paragraph("Valeur").setBold()));
+        table.addCell(cellHeader("Champ"));
+        table.addCell(cellHeader("Valeur"));
 
-        // Données - La demande peut avoir un visa associé
-        // Pour maintenant, afficher que le visa n'est pas accessible directement
-        // Il faut accéder via VisaRepository.findByDemande()
         addRow(table, "Référence Visa", "(Voir détails dossier)");
         addRow(table, "Type Visa", "-");
         addRow(table, "Date Entrée", "-");
         addRow(table, "Date Expiration", "-");
         addRow(table, "Lieu Entrée", "-");
 
-        return new Paragraph().add(section).add(table);
+        return table;
     }
 
     /**
      * Section Justificatifs du récépissé
      */
-    private Paragraph creerSectionJustificatifs(Demande demande) {
-        Paragraph section = new Paragraph("SECTION 4: JUSTIFICATIFS REÇUS")
-                .setFontSize(12)
-                .setBold()
-                .setMarginBottom(10);
-
+    private Table creerSectionJustificatifs(Demande demande) {
         List<PieceAFournir> pieces = pieceAFournirRepository.findByDemande(demande);
 
         Table table = new Table(UnitValue.createPercentArray(3));
         table.setWidth(UnitValue.createPercentValue(100));
+        table.setKeepTogether(false);
 
-        // En-têtes
-        table.addCell(new Cell().add(new Paragraph("Document").setBold()));
-        table.addCell(new Cell().add(new Paragraph("Obligatoire").setBold()));
-        table.addCell(new Cell().add(new Paragraph("Reçu").setBold()));
+        table.addCell(cellHeader("Document"));
+        table.addCell(cellHeader("Obligatoire"));
+        table.addCell(cellHeader("Reçu"));
 
-        // Données
         if (pieces != null && !pieces.isEmpty()) {
             for (PieceAFournir piece : pieces) {
                 String typeDoc = piece.getTypeDocument() != null
@@ -229,17 +209,58 @@ public class GenerateurPDFService {
                         : "NON";
                 String recu = piece.getPresent() != null && piece.getPresent() ? "OUI" : "NON";
 
-                table.addCell(new Cell().add(new Paragraph(typeDoc)));
-                table.addCell(new Cell().add(new Paragraph(obligatoire)));
-                table.addCell(new Cell().add(new Paragraph(recu)));
+                table.addCell(cellValue(typeDoc));
+                table.addCell(cellValue(obligatoire));
+                table.addCell(cellValue(recu));
             }
         } else {
-            table.addCell(new Cell().add(new Paragraph("Aucun justificatif")));
-            table.addCell(new Cell().add(new Paragraph("-")));
-            table.addCell(new Cell().add(new Paragraph("-")));
+            table.addCell(new Cell(1, 3).add(new Paragraph("Aucun justificatif").setItalic()));
         }
 
-        return new Paragraph().add(section).add(table);
+        return table;
+    }
+
+    private Paragraph creerSectionTitre(String titre) {
+        return new Paragraph(titre)
+                .setFontSize(11)
+                .setBold()
+                .setMarginTop(10)
+                .setMarginBottom(6)
+                .setKeepTogether(true);
+    }
+
+    private Paragraph creerBlocEnTete(Demande demande) {
+        Div bloc = new Div();
+        bloc.setBorder(Border.NO_BORDER);
+        bloc.setPaddingBottom(8);
+        bloc.add(new Paragraph("Dossier #" + demande.getId())
+                .setBold()
+                .setFontSize(12)
+                .setTextAlignment(TextAlignment.LEFT));
+
+        String nomDemandeur = demande.getDemandeur() != null && demande.getDemandeur().getNom() != null
+                ? demande.getDemandeur().getNom()
+                : "-";
+        String prenomDemandeur = demande.getDemandeur() != null && demande.getDemandeur().getPrenom() != null
+                ? demande.getDemandeur().getPrenom()
+                : "";
+        bloc.add(new Paragraph("Demandeur: " + nomDemandeur + (prenomDemandeur.isBlank() ? "" : " " + prenomDemandeur))
+                .setFontSize(10)
+                .setMarginTop(0));
+
+        return new Paragraph().add(bloc);
+    }
+
+    private Cell cellHeader(String texte) {
+        return new Cell()
+                .add(new Paragraph(texte).setBold().setFontSize(9))
+                .setVerticalAlignment(VerticalAlignment.MIDDLE);
+    }
+
+    private Cell cellValue(String texte) {
+        return new Cell()
+                .add(new Paragraph(texte != null ? texte : "-").setFontSize(8.5f))
+                .setVerticalAlignment(VerticalAlignment.MIDDLE);
     }
 
     /**

@@ -13,9 +13,5 @@ public interface DecisionDocumentRepository extends JpaRepository<DecisionDocume
     List<DecisionDocument> findByDemande(Demande demande);
     
     List<DecisionDocument> findByDemandeAndTypeDecision(Demande demande, String typeDecision);
-@Repository
-public interface DecisionDocumentRepository extends JpaRepository<DecisionDocument, Integer> {
-    List<DecisionDocument> findByIdDemande(Integer idDemande);
-    DecisionDocument findFirstByIdDemandeOrderByDateDecisionDesc(Integer idDemande);
 
 }

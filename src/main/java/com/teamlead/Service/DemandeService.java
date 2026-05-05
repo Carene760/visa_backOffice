@@ -2,16 +2,43 @@
                     import java.time.LocalDate;
                     import java.time.LocalDateTime;
                     import java.util.List;
+
                     import org.springframework.beans.factory.annotation.Autowired;
                     import org.springframework.beans.factory.annotation.Value;
                     import org.springframework.dao.DataIntegrityViolationException;
                     import org.springframework.stereotype.Service;
                     import org.springframework.transaction.annotation.Transactional;
+
                     import com.teamlead.DTO.DemandeCreationDTO;
                     import com.teamlead.DTO.ValidationErrorDTO;
                     import com.teamlead.Exception.ValidationException;
-                    import com.teamlead.Model.*;
-                    import com.teamlead.Repository.*;
+                    import com.teamlead.Model.Demande;
+                    import com.teamlead.Model.Demandeur;
+import com.teamlead.Model.MotifTransfert;
+import com.teamlead.Model.Nationalite;
+import com.teamlead.Model.Passeport;
+import com.teamlead.Model.PasseportVisa;
+import com.teamlead.Model.PieceAFournir;
+import com.teamlead.Model.SituationMatrimoniale;
+import com.teamlead.Model.StatutDemande;
+import com.teamlead.Model.TypeDemande;
+import com.teamlead.Model.TypeDocument;
+import com.teamlead.Model.TypeMotif;
+import com.teamlead.Model.TypeVisa;
+import com.teamlead.Repository.DemandeRepository;
+import com.teamlead.Repository.DemandeurRepository;
+import com.teamlead.Repository.MotifTransfertRepository;
+import com.teamlead.Repository.NationaliteRepository;
+import com.teamlead.Repository.PasseportRepository;
+import com.teamlead.Repository.PasseportVisaRepository;
+import com.teamlead.Repository.PieceAFournirRepository;
+import com.teamlead.Repository.SituationMatrimonialeRepository;
+import com.teamlead.Repository.StatutDemandeRepository;
+import com.teamlead.Repository.TypeDemandeRepository;
+import com.teamlead.Repository.TypeDocumentRepository;
+import com.teamlead.Repository.TypeMotifRepository;
+import com.teamlead.Repository.TypeVisaRepository;
+import com.teamlead.Repository.VisaRepository;
 
                     @Service
                     public class DemandeService{
@@ -28,15 +55,10 @@
                     @Autowired private VisaRepository visaRepository;
                     @Autowired private PasseportVisaRepository passeportVisaRepository;
                     @Autowired private TypeVisaRepository typeVisaRepository;
-                    @Autowired private TypeEvenementRepository typeEvenementRepository;
-                    @Autowired private JournalActiviteRepository journalActiviteRepository;
                     @Autowired private MotifTransfertRepository motifTransfertRepository;
                     @Autowired private DemandeValidationService demandeValidationService;
                     @Autowired private DemandeStatusService demandeStatusService;
-                    @Autowired private RechercheAntecendentRepository rechercheAntecendentRepository;
-                    @Autowired private SousTypeDemandeRepository sousTypeDemandeRepository;
-                    @Autowired private CarteResidentRepository carteResidentRepository;
-                    @Autowired private DecisionDocumentRepository decisionDocumentRepository;
+                    @Autowired private DecisionDocumentService decisionDocumentService;
                     
                     @Value("${renouvellement.delta.jours:0}")
                     private int deltaDaysConfig;
@@ -52,6 +74,14 @@
                     if(demandeDTO.getDateEntreeVisa()==null||demandeDTO.getDateExpirationVisa()==null)return failure("Erreur: Dates du visa obligatoires","Les dates d'entrée et d'expiration du visa sont obligatoires.");
                     if(!demandeDTO.getDateExpirationPasseport().isAfter(demandeDTO.getDateDelivrancePasseport()))return failure("Erreur: Dates du passeport incohérentes","La date d'expiration du passeport doit être postérieure à la date de délivrance.");
                     if(!demandeDTO.getDateExpirationVisa().isAfter(demandeDTO.getDateEntreeVisa()))return failure("Erreur: Dates du visa incohérentes","La date d'expiration du visa doit être strictement postérieure à la date d'entrée.");
+
+                    boolean sansDonneesAnterieures = Boolean.TRUE.equals(demandeDTO.getSansdonneesAnterieures());
+                    if(!sansDonneesAnterieures){
+                        LocalDate expirationMaximale = demandeDTO.getDateEntreeVisa().plusDays(30);
+                        if(demandeDTO.getDateExpirationVisa().isAfter(expirationMaximale)){
+                            return failure("Erreur: Durée maximale dépassée","Un visa transformable ne peut pas dépasser 30 jours à partir de la date d'entrée.");
+                        }
+                    }
                     
                     // Validation stricte: dateDemande < dateExpirationVisa avec delta configurable
                     LocalDate today = LocalDate.now();
@@ -85,8 +115,20 @@
                     ValidationErrorDTO validationDemandeur=demandeValidationService.validerDemandeur(demandeur);
                     if(!validationDemandeur.isSuccess())return buildFailure("Erreurs de validation du demandeur",validationDemandeur.getErrors());
 
-                    ValidationErrorDTO validationDocuments=demandeValidationService.validerDocumentsObligatoires(demandeDTO.getPiecesPresentes(),demandeDTO.getIdTypeMotif());
+                    java.util.List<Integer> piecesPresentes = demandeDTO.getPiecesPresentes();
+                    if(sansDonneesAnterieures){
+                        piecesPresentes = typeDocumentRepository.findAll().stream()
+                                .filter(doc -> doc.getTypeMotif() == null || (demandeDTO.getIdTypeMotif() != null && doc.getTypeMotif() != null && demandeDTO.getIdTypeMotif().equals(doc.getTypeMotif().getId())))
+                                .map(TypeDocument::getId)
+                                .toList();
+                    }
+
+                    ValidationErrorDTO validationDocuments=demandeValidationService.validerDocumentsObligatoires(piecesPresentes,demandeDTO.getIdTypeMotif());
                     if(!validationDocuments.isSuccess())return buildFailure("Documents obligatoires manquants",validationDocuments.getErrors());
+
+                    if(sansDonneesAnterieures && (piecesPresentes==null || piecesPresentes.isEmpty())) {
+                        return failure("Erreur: Pièces obligatoires manquantes","Aucune pièce à fournir n'a été sélectionnée pour une demande sans données antérieures.");
+                    }
 
                     if(demandeurRepository.findByEmail(demandeDTO.getEmail())!=null)return failure("Erreur: Email déjà utilisé","Un demandeur avec cet email existe déjà.");
                     if(demandeurRepository.findByTelephone(demandeDTO.getTelephone())!=null)return failure("Erreur: Numéro déjà utilisé","Un demandeur avec ce numéro existe déjà.");
@@ -102,11 +144,9 @@
 
                     TypeMotif typeMotif=typeMotifRepository.findById(demandeDTO.getIdTypeMotif()).orElseThrow(()->new ValidationException("Erreur: Type motif invalide",List.of("Type motif inexistant.")));
                     TypeDemande typeDemande=typeDemandeRepository.findById(demandeDTO.getIdTypeDemande()).orElseThrow(()->new ValidationException("Erreur: Type demande invalide",List.of("Type demande inexistant.")));
-                    TypeVisa typeVisa=typeVisaRepository.findNormalizedByLibelle("TRANSFORMABLE").or(()->typeVisaRepository.findFirstByLibelleIgnoreCase("TRANSFORMABLE")).orElseThrow(()->new ValidationException("Erreur système",List.of("Type visa introuvable.")));
-
-                    TypeEvenement typeEvenement=typeEvenementRepository.findByCode("CREATION DEMANDE");
-                    if(typeEvenement==null)typeEvenement=typeEvenementRepository.findByCode("CREATION_DEMANDE");
-                    if(typeEvenement==null)throw new ValidationException("Erreur système",List.of("Type événement introuvable."));
+                        TypeVisa typeVisa = sansDonneesAnterieures
+                            ? typeVisaRepository.findNormalizedByLibelle("VALIDE").or(() -> typeVisaRepository.findFirstByLibelleIgnoreCase("VALIDE")).orElseThrow(() -> new ValidationException("Erreur système", List.of("Type visa introuvable.")))
+                            : typeVisaRepository.findNormalizedByLibelle("TRANSFORMABLE").or(() -> typeVisaRepository.findFirstByLibelleIgnoreCase("TRANSFORMABLE")).orElseThrow(() -> new ValidationException("Erreur système", List.of("Type visa introuvable.")));
 
                     try{
                     demandeur=demandeurRepository.save(demandeur);
@@ -117,7 +157,16 @@
                     demande.setDateTraitement(LocalDateTime.now());
                     demande.setTypeMotif(typeMotif);
                     demande.setTypeDemande(typeDemande);
+                    demande.setSansDonneesAnterieures(Boolean.TRUE.equals(sansDonneesAnterieures));
+                    demande.setAvecDonneesAnterieures(!Boolean.TRUE.equals(sansDonneesAnterieures));
                     demande=demandeRepository.save(demande);
+
+                    demandeStatusService.initializeDemandeStatus(demande);
+
+                    String codeEvenementCreation = sansDonneesAnterieures
+                        ? "NOUVEAU_TITRE_SANS_DONNEE_ANTERIEURE"
+                        : "CREATION DEMANDE";
+                    demandeStatusService.enregistrerJournalActivite(demande, codeEvenementCreation);
 
                     Passeport passeport=new Passeport();
                     passeport.setDemandeur(demandeur);
@@ -148,24 +197,37 @@
                     pv.setDateCreation(LocalDateTime.now());
                     passeportVisaRepository.save(pv);
 
-                    JournalActivite journal=new JournalActivite();
-                    journal.setDemandeur(demandeur);
-                    journal.setTypeEvenement(typeEvenement);
-                    journal.setDateAction(LocalDateTime.now());
-                    journalActiviteRepository.save(journal);
-
-                    if(demandeDTO.getPiecesPresentes()!=null&&!demandeDTO.getPiecesPresentes().isEmpty()){
-                    for(Integer id:demandeDTO.getPiecesPresentes()){
+                    if(piecesPresentes!=null&&!piecesPresentes.isEmpty()){
+                    for(Integer id:piecesPresentes){
                     PieceAFournir piece=new PieceAFournir();
                     piece.setDemande(demande);
                     piece.setTypeDocument(typeDocumentRepository.findById(id).orElseThrow(()->new ValidationException("Erreur doc",List.of("Doc inexistant "+id))));
-                    piece.setPresent(true);
+                    piece.setPresent(Boolean.TRUE);
+                    piece.setValide(Boolean.TRUE.equals(sansDonneesAnterieures));
+                    piece.setScanComplete(Boolean.TRUE.equals(sansDonneesAnterieures));
+                    piece.setDateScanComplete(Boolean.TRUE.equals(sansDonneesAnterieures) ? LocalDateTime.now() : null);
                     piece.setDateDepot(LocalDateTime.now());
                     piece.setDateModification(LocalDateTime.now());
                     pieceAFournirRepository.save(piece);
                     }}
 
-                    demandeStatusService.initializeDemandeStatus(demande);
+                    if (Boolean.TRUE.equals(sansDonneesAnterieures)) {
+                        decisionDocumentService.enregistrerDecision(
+                            demande,
+                            "MANUAL_REVIEW",
+                            "Demande sans donnees antérieures: pièces auto-marquees, dossier prêt pour traitement.",
+                            true
+                        );
+
+                        ValidationErrorDTO transition = demandeStatusService.transitionnerVersScanTermine(demande.getId());
+                        if (!transition.isSuccess()) {
+                            throw new ValidationException("Impossible de finaliser le dossier",
+                                transition.getErrors() != null && !transition.getErrors().isEmpty()
+                                    ? transition.getErrors()
+                                    : List.of(transition.getMessage() != null ? transition.getMessage() : "Erreur inconnue"));
+                        }
+                    }
+
                     validation.setDemandeId(demande.getId());
                     return validation;
 

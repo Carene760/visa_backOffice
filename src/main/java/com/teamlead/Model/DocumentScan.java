@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.FetchType;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -26,6 +27,10 @@ public class DocumentScan {
     @ManyToOne
     @JoinColumn(name = "id_piece_a_fournir", nullable = false, foreignKey = @ForeignKey(name = "document_scan_id_piece_fkey"))
     private PieceAFournir pieceAFournir;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_demande", foreignKey = @ForeignKey(name = "document_scan_id_demande_fkey"))
+    private Demande demande;
 
     @Column(name = "chemin_fichier", nullable = false, length = 500)
     private String cheminFichier;
