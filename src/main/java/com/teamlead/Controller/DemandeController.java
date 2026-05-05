@@ -625,6 +625,13 @@ public class DemandeController {
             @PathVariable Integer idPiece,
             @RequestParam("fichier") MultipartFile fichier,
             @RequestParam(value = "numeroPage", required = false) Integer numeroPage) {
+
+        Demande demande = demandeRepository.findById(idDemande).orElse(null);
+        if (demande != null && demande.getStatutDemande() != null
+                && "SCAN_TERMINE".equalsIgnoreCase(demande.getStatutDemande().getLibelle())) {
+            return ResponseEntity.badRequest().body(new ValidationErrorDTO(false,
+                    "Upload bloqué: la demande est déjà au statut SCAN_TERMINE."));
+        }
         
         if (numeroPage == null) {
             numeroPage = 1;

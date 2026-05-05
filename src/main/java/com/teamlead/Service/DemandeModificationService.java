@@ -16,6 +16,11 @@ import com.teamlead.Model.PieceAFournir;
 import com.teamlead.Repository.DemandeRepository;
 import com.teamlead.Repository.PieceAFournirRepository;
 import com.teamlead.Repository.TypeDocumentRepository;
+import com.teamlead.Repository.DemandeurRepository;
+import com.teamlead.Repository.PasseportRepository;
+import com.teamlead.Repository.VisaRepository;
+import com.teamlead.Repository.TypeDemandeRepository;
+import com.teamlead.Repository.TypeMotifRepository;
 
 /**
  * Service de gestion de la modification des demandes
@@ -34,6 +39,21 @@ public class DemandeModificationService {
 
     @Autowired
     private PieceAFournirRepository pieceAFournirRepository;
+
+    @Autowired
+    private DemandeurRepository demandeurRepository;
+
+    @Autowired
+    private PasseportRepository passeportRepository;
+
+    @Autowired
+    private VisaRepository visaRepository;
+
+    @Autowired
+    private TypeDemandeRepository typeDemandeRepository;
+
+    @Autowired
+    private TypeMotifRepository typeMotifRepository;
 
     @Autowired
     private TypeDocumentRepository typeDocumentRepository;
@@ -155,7 +175,63 @@ public class DemandeModificationService {
         }
 
         try {
-            // Étape 3: Mettre à jour les pièces à fournir
+            // Étape 3: Mettre à jour les entités liées (demandeur, passeport, visa, type)
+            // Mettre à jour le demandeur si présent
+            if (demande.getDemandeur() != null) {
+                var demandeur = demande.getDemandeur();
+                if (dto.getNom() != null) demandeur.setNom(dto.getNom());
+                if (dto.getPrenom() != null) demandeur.setPrenom(dto.getPrenom());
+                if (dto.getNomNaissance() != null) demandeur.setNomNaissance(dto.getNomNaissance());
+                if (dto.getEmail() != null) demandeur.setEmail(dto.getEmail());
+                if (dto.getTelephone() != null) demandeur.setTelephone(dto.getTelephone());
+                if (dto.getIdNationalite() != null) {
+                    var nat = demandeur.getNationalite();
+                    // charger via repo si nécessaire
+                    // On utilise le champ id pour mise à jour légère
+                }
+                if (dto.getDateNaissance() != null) demandeur.setDateNaissance(dto.getDateNaissance());
+                if (dto.getLieuNaissance() != null) demandeur.setLieuNaissance(dto.getLieuNaissance());
+                if (dto.getIdSituationMatrimoniale() != null) {
+                    // On garde la gestion via service si besoin; laisser tel quel
+                }
+                if (dto.getAdresseMadagascar() != null) demandeur.setAdresseMadagascar(dto.getAdresseMadagascar());
+                demandeurRepository.save(demandeur);
+            }
+
+            // Mettre à jour le type de demande et motif si fournis
+            if (dto.getIdTypeDemande() != null) {
+                var td = typeDemandeRepository.findById(dto.getIdTypeDemande()).orElse(null);
+                if (td != null) demande.setTypeDemande(td);
+            }
+            if (dto.getIdTypeMotif() != null) {
+                var tm = typeMotifRepository.findById(dto.getIdTypeMotif()).orElse(null);
+                if (tm != null) demande.setTypeMotif(tm);
+            }
+
+            // Mettre à jour le passeport (le plus récent) si fourni
+            if (demande.getDemandeur() != null && dto.getNumeroPasseport() != null) {
+                var passeport = passeportRepository.findFirstByDemandeurOrderByDateCreationDesc(demande.getDemandeur());
+                if (passeport != null) {
+                    passeport.setNumero(dto.getNumeroPasseport());
+                    passeport.setDateDelivrance(dto.getDateDelivrancePasseport());
+                    passeport.setDateExpiration(dto.getDateExpirationPasseport());
+                    passeportRepository.save(passeport);
+                }
+            }
+
+            // Mettre à jour le visa associé à la demande si fourni
+            if (dto.getReferenceVisa() != null) {
+                var visa = visaRepository.findFirstByDemandeOrderByDateEmissionDesc(demande);
+                if (visa != null) {
+                    visa.setReference(dto.getReferenceVisa());
+                    visa.setDateEntree(dto.getDateEntreeVisa());
+                    visa.setLieuEntree(dto.getLieuEntreeVisa());
+                    visa.setDateExpiration(dto.getDateExpirationVisa());
+                    visaRepository.save(visa);
+                }
+            }
+
+            // Étape 4: Mettre à jour les pièces à fournir
             List<PieceAFournir> piecesExistantes = pieceAFournirRepository
                     .findByDemandeId(demandeId);
             pieceAFournirRepository.deleteAll(piecesExistantes);

@@ -85,6 +85,13 @@ public class DocumentScanService {
                     .orElseThrow(() -> new ValidationException("Erreur: Pièce non trouvée",
                             List.of("La pièce " + idPiece + " n'existe pas")));
 
+            Demande demande = piece.getDemande();
+            if (demande != null && demande.getStatutDemande() != null
+                && "SCAN_TERMINE".equalsIgnoreCase(demande.getStatutDemande().getLibelle())) {
+            return new ValidationErrorDTO(false,
+                "Upload bloqué: la demande est déjà au statut SCAN_TERMINE.");
+            }
+
             // Valider le fichier
             ValidationErrorDTO validation = validerFichier(fichier);
             if (!validation.isSuccess()) {

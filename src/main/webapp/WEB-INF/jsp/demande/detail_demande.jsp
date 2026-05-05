@@ -397,6 +397,9 @@
 </head>
 <body>
     <div class="container">
+        <c:set var="scanTermine" value="${demande.statutDemande != null && demande.statutDemande.libelle == 'SCAN_TERMINE'}" />
+        <c:set var="dossierCree" value="${demande.statutDemande != null && demande.statutDemande.libelle == 'DOSSIER_CREE'}" />
+
         <header>
             <h1>Détail du Dossier</h1>
             <div class="dossier-reference">
@@ -413,6 +416,13 @@
             <div class="alert alert-danger">
                 <strong>⛔ Modification non autorisée</strong>
                 <p>Ce dossier a atteint le statut "${demande.statutDemande.libelle}". Aucune modification n'est possible après DOSSIER_CREE.</p>
+            </div>
+        </c:if>
+
+        <c:if test="${scanTermine}">
+            <div class="alert alert-warning">
+                <strong>⛔ Documents verrouillés</strong>
+                <p>Le dossier est au statut SCAN_TERMINE. L'upload et la suppression des fichiers sont désormais interdits.</p>
             </div>
         </c:if>
 
@@ -529,6 +539,7 @@
                                         </div>
                                     </div>
                                     <div class="scan-actions">
+                                        <c:if test="${not scanTermine}">
                                         <button type="button"
                                                 class="btn-mini primary"
                                                 data-upload-url="/demande/${demande.id}/piece/${piece.id}/upload"
@@ -536,6 +547,7 @@
                                                 onclick="openUploadModal(this)">
                                             📤 Upload
                                         </button>
+                                        </c:if>
                                     </div>
                                 </div>
 
@@ -548,12 +560,14 @@
                                                     <strong>${scan.nomFichier}</strong>
                                                     <div class="piece-meta">${scan.typeMime} · ${scan.dateUpload}</div>
                                                 </div>
+                                                <c:if test="${not scanTermine}">
                                                 <button type="button"
                                                         class="btn-mini danger"
                                                         data-delete-url="/demande/${demande.id}/scan/${scan.id}"
                                                         onclick="removeScan(this)">
                                                     Retirer
                                                 </button>
+                                                </c:if>
                                             </div>
                                         </c:forEach>
                                     </c:if>
@@ -565,6 +579,7 @@
                         </c:forEach>
                     </div>
 
+                    <c:if test="${not scanTermine}">
                     <!-- Upload Modal -->
                     <div id="uploadModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
                         <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); max-width: 400px; width: 90%;">
@@ -576,6 +591,7 @@
                             </div>
                         </div>
                     </div>
+                    </c:if>
                 </c:if>
                 <c:if test="${empty pieces}">
                     <p style="color: #999; font-style: italic;">Aucun document à fournir.</p>
@@ -612,7 +628,7 @@
 
         <!-- Actions -->
         <div class="actions" style="justify-content: center; margin-top: 30px;">
-            <c:if test="${demande.statutDemande.libelle == 'DOSSIER_CREE'}">
+            <c:if test="${dossierCree}">
                 <a href="/demande/${demande.id}/modifier" class="btn">Modifier Dossier</a>
             </c:if>
             <a href="/demande/${demande.id}/generer-recepisse" class="btn" download="recepisse_${demande.id}.pdf">Télécharger Récépissé PDF</a>
@@ -693,11 +709,14 @@
         }
 
         // Fermer modal au clic en dehors
-        document.getElementById('uploadModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeUploadModal();
-            }
-        });
+        const uploadModal = document.getElementById('uploadModal');
+        if (uploadModal) {
+            uploadModal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeUploadModal();
+                }
+            });
+        }
     </script>
 </body>
 </html>
