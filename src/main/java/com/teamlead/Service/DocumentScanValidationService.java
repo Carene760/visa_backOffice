@@ -29,18 +29,17 @@ public class DocumentScanValidationService {
     public List<String> verifierTousLesObligatoiresScannes(Integer idDemande) {
         List<String> manquants = new ArrayList<>();
 
-        Demande demande = demandeRepository.findById(idDemande)
-                .orElseThrow(() -> new RuntimeException("Demande non trouvée"));
-
         List<PieceAFournir> pieces = pieceAFournirRepository.findByDemandeId(idDemande);
 
         for (PieceAFournir piece : pieces) {
             TypeDocument typeDoc = piece.getTypeDocument();
+            boolean pieceAutoCompletee = Boolean.TRUE.equals(piece.getScanComplete());
             
             // Vérifier si c'est obligatoire
             if (typeDoc != null && isDocumentObligatoire(typeDoc)) {
                 Integer countScans = documentScanRepository.countByIdPieceAFournir(piece.getId());
-                if (countScans == null || countScans == 0) {
+                boolean hasScans = countScans != null && countScans > 0;
+                if (!hasScans && !pieceAutoCompletee) {
                     manquants.add(typeDoc.getLibelle() != null ? typeDoc.getLibelle() : "Document sans libellé");
                 }
             }
@@ -53,9 +52,6 @@ public class DocumentScanValidationService {
      * Vérifie la plétude du dossier (complet/partiel/vide)
      */
     public String verifierCompleteudeDossierScan(Integer idDemande) {
-        Demande demande = demandeRepository.findById(idDemande)
-                .orElseThrow(() -> new RuntimeException("Demande non trouvée"));
-
         List<PieceAFournir> pieces = pieceAFournirRepository.findByDemandeId(idDemande);
 
         int totalObligatoires = 0;
@@ -66,7 +62,7 @@ public class DocumentScanValidationService {
         for (PieceAFournir piece : pieces) {
             TypeDocument typeDoc = piece.getTypeDocument();
             Integer countScans = documentScanRepository.countByIdPieceAFournir(piece.getId());
-            boolean hasScans = countScans != null && countScans > 0;
+            boolean hasScans = (countScans != null && countScans > 0) || Boolean.TRUE.equals(piece.getScanComplete());
 
             if (typeDoc != null && isDocumentObligatoire(typeDoc)) {
                 totalObligatoires++;
@@ -129,7 +125,7 @@ public class DocumentScanValidationService {
         for (PieceAFournir piece : pieces) {
             TypeDocument typeDoc = piece.getTypeDocument();
             Integer countScans = documentScanRepository.countByIdPieceAFournir(piece.getId());
-            boolean hasScans = countScans != null && countScans > 0;
+            boolean hasScans = (countScans != null && countScans > 0) || Boolean.TRUE.equals(piece.getScanComplete());
 
             if (typeDoc != null && isDocumentObligatoire(typeDoc)) {
                 totalObligatoires++;

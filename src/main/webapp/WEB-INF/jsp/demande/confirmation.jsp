@@ -131,7 +131,7 @@
         </div>
 
         <div class="form-actions">
-            <a href="/demande/nouveau" class="btn-secondary">Créer une Autre Demande</a>
+            <a href="/demande/nouveau?type=NOUVEAU_TITRE" class="btn-secondary">Créer une Autre Demande</a>
             <a href="/" class="btn-primary">Retour à l'Accueil</a>
         </div>
     </div>

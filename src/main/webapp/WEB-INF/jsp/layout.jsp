@@ -220,70 +220,46 @@
             </div>
 
             <ul class="sidebar-menu" id="sidebarMenu">
-                <!-- NOUVEAU TITRE -->
-                <li>
+                <!-- SPRINT 2 - Menu de Sélection de Type de Demande -->
+                <li style="margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.2);">
                     <a href="/demande/nouveau?type=NOUVEAU_TITRE" class="sidebar-menu-item">
-                        Nouveau Titre
+                        ➕ Nouveau Titre
                     </a>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 8px 15px 0 15px;">
+                        Nouvelle demande
+                    </p>
                 </li>
 
-                <!-- DUPLICATA -->
-                <li>
-                    <a href="#" class="sidebar-menu-item" onclick="toggleSubmenu(event, 'duplicataSubmenu')">
-                        Duplicata
-                        <span style="float: right;">▼</span>
+                <li style="margin-bottom: 25px;">
+                    <a href="/demande/duplicata" class="sidebar-menu-item">
+                        📋 Duplicata
                     </a>
-                    <ul class="sidebar-submenu" id="duplicataSubmenu">
-                        <!-- Avec données antérieures -->
-                        <li>
-                            <a href="#" class="sidebar-submenu-item" onclick="toggleSubmenu(event, 'avecAnterieursSubmenu')">
-                                Avec données antérieures
-                                <span style="float: right; font-size: 12px;">▼</span>
-                            </a>
-                            <ul class="sidebar-submenu" id="avecAnterieursSubmenu">
-                                <li>
-                                    <a href="/demande/nouveau?type=DUPLICATA&sousType=DUPLICATA_CARTE_RESIDENT&avecAntecedents=1" class="sidebar-submenu-item">
-                                        Duplicata Carte Résident
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/demande/nouveau?type=DUPLICATA&sousType=TRANSFERT_VISA&avecAntecedents=1" class="sidebar-submenu-item">
-                                        Transfert Visa
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/demande/nouveau?type=DUPLICATA&sousType=LES_DEUX&avecAntecedents=1" class="sidebar-submenu-item">
-                                        Les Deux
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 8px 15px 0 15px;">
+                        Carte résidente
+                    </p>
+                </li>
 
-                        <!-- Sans données antérieures -->
-                        <li>
-                            <a href="#" class="sidebar-submenu-item" onclick="toggleSubmenu(event, 'sansAnterieursSubmenu')">
-                                Sans données antérieures
-                                <span style="float: right; font-size: 12px;">▼</span>
-                            </a>
-                            <ul class="sidebar-submenu" id="sansAnterieursSubmenu">
-                                <li>
-                                    <a href="/demande/nouveau?type=DUPLICATA&sousType=DUPLICATA_CARTE_RESIDENT&avecAntecedents=0" class="sidebar-submenu-item">
-                                        Duplicata Carte Résident
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/demande/nouveau?type=DUPLICATA&sousType=TRANSFERT_VISA&avecAntecedents=0" class="sidebar-submenu-item">
-                                        Transfert Visa
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="/demande/nouveau?type=DUPLICATA&sousType=LES_DEUX&avecAntecedents=0" class="sidebar-submenu-item">
-                                        Les Deux
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                    </ul>
+                <li style="margin-bottom: 25px;">
+                    <a href="/demande/transfert" class="sidebar-menu-item">
+                        🔄 Transfert Visa
+                    </a>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 8px 15px 0 15px;">
+                        Nouveau passeport
+                    </p>
+                </li>
+
+                <!-- Séparateur -->
+                <li style="margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.2); border-top: 1px solid rgba(255,255,255,0.2); padding-top: 15px;">
+                </li>
+
+                <!-- Documents Modifiables - Toujours Visible -->
+                <li>
+                    <a href="/demande/documents-modifiables" class="sidebar-menu-item" style="background-color: rgba(26, 188, 156, 0.15); border-left: 3px solid var(--accent-teal);">
+                        ✎ Documents Modifiables
+                    </a>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 8px 15px 0 15px;">
+                        Modifier vos demandes
+                    </p>
                 </li>
             </ul>
         </aside>
@@ -338,18 +314,14 @@
         // Auto-open submenus if URL contains relevant parameters
         document.addEventListener('DOMContentLoaded', function() {
             const params = new URLSearchParams(window.location.search);
-            if (params.has('type') || params.has('sousType')) {
-                const duplicataSubmenu = document.getElementById('duplicataSubmenu');
-                if (duplicataSubmenu) {
-                    duplicataSubmenu.classList.add('open');
-                }
-
+            if (params.has('mode') || params.has('type') || params.has('sousType')) {
                 if (params.get('avecAntecedents') === '1') {
                     const avecAnterieursSubmenu = document.getElementById('avecAnterieursSubmenu');
                     if (avecAnterieursSubmenu) {
                         avecAnterieursSubmenu.classList.add('open');
                     }
-                } else if (params.get('avecAntecedents') === '0') {
+                }
+                if (params.get('avecAntecedents') === '0' || params.get('mode') === 'nouvelle_demande') {
                     const sansAnterieursSubmenu = document.getElementById('sansAnterieursSubmenu');
                     if (sansAnterieursSubmenu) {
                         sansAnterieursSubmenu.classList.add('open');

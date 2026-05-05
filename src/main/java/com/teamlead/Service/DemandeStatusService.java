@@ -2,13 +2,23 @@ package com.teamlead.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import com.teamlead.DTO.ValidationErrorDTO;
 import com.teamlead.Exception.ValidationException;
-import com.teamlead.Model.*;
-import com.teamlead.Repository.*;
+import com.teamlead.Model.Demande;
+import com.teamlead.Model.HistoriqueStatutDemande;
+import com.teamlead.Model.JournalActivite;
+import com.teamlead.Model.TypeEvenement;
+import com.teamlead.Model.StatutDemande;
+import com.teamlead.Repository.DemandeRepository;
+import com.teamlead.Repository.HistoriqueStatutDemandeRepository;
+import com.teamlead.Repository.JournalActiviteRepository;
+import com.teamlead.Repository.StatutDemandeRepository;
+import com.teamlead.Repository.TypeEvenementRepository;
 
 @Service
 public class DemandeStatusService {
@@ -32,6 +42,10 @@ public class DemandeStatusService {
     private TypeEvenementRepository typeEvenementRepository;
 
     public void initializeDemandeStatus(Demande demande) {
+        initializeDemandeStatus(demande, false);
+    }
+
+    public void initializeDemandeStatus(Demande demande, boolean sansDonneesAnterieures) {
         StatutDemande statut = statutDemandeRepository.findByLibelle("DOSSIER_CREE");
         if (statut == null)
             throw new ValidationException("Erreur de configuration du système",
@@ -41,6 +55,29 @@ public class DemandeStatusService {
         h.setStatut(statut);
         h.setDateChangement(LocalDateTime.now());
         historiqueStatutDemandeRepository.save(h);
+
+        demande.setStatutDemande(statut);
+        demande.setDateModification(LocalDateTime.now());
+        demandeRepository.save(demande);
+    }
+
+    public void enregistrerJournalActivite(Demande demande, String codeEvenement) {
+        if (demande == null || demande.getDemandeur() == null || codeEvenement == null || codeEvenement.isBlank()) {
+            return;
+        }
+
+        TypeEvenement typeEvenement = typeEvenementRepository.findByCode(codeEvenement);
+        if (typeEvenement == null) {
+            typeEvenement = new TypeEvenement();
+            typeEvenement.setCode(codeEvenement);
+            typeEvenement = typeEvenementRepository.save(typeEvenement);
+        }
+
+        JournalActivite journal = new JournalActivite();
+        journal.setDemandeur(demande.getDemandeur());
+        journal.setTypeEvenement(typeEvenement);
+        journal.setDateAction(LocalDateTime.now());
+        journalActiviteRepository.save(journal);
     }
 
     /**
@@ -56,6 +93,9 @@ public class DemandeStatusService {
 
             // Vérifier le statut actuel
             StatutDemande statutActuel = demande.getStatutDemande();
+            if (statutActuel != null && "SCAN_TERMINE".equalsIgnoreCase(statutActuel.getLibelle())) {
+                return new ValidationErrorDTO(true, "La demande est déjà au statut SCAN_TERMINE");
+            }
             if (statutActuel == null || !statutActuel.getLibelle().equals("DOSSIER_CREE")) {
                 return new ValidationErrorDTO(false,
                         "Erreur: Le statut actuel n'est pas DOSSIER_CREE. Transition impossible.");

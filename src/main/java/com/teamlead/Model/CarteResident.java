@@ -43,20 +43,13 @@ public class CarteResident {
     @Column(name = "date_expiration")
     private LocalDate dateExpiration;
 
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_demande", nullable = false, foreignKey = @ForeignKey(name = "carte_resident_id_demande_fkey"))
     private Demande demande;
 
     @ManyToOne(fetch = FetchType.LAZY)
-
-    @ManyToOne
-    @JoinColumn(name = "id_demande", nullable = false, foreignKey = @ForeignKey(name = "carte_resident_id_demande_fkey"))
-    private Demande demande;
-
-    @ManyToOne
-    @JoinColumn(name = "id_passeport", nullable = false, foreignKey = @ForeignKey(name = "carte_resident_id_passeport_fkey"))
-    private Passeport passeport;
+    @JoinColumn(name = "id_visa", nullable = false, foreignKey = @ForeignKey(name = "carte_resident_id_visa_fkey"))
+    private Visa visa;
 
     @Column(name = "date_emission")
     private LocalDateTime dateEmission;

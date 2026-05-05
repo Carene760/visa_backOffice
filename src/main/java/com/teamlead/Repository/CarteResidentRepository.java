@@ -11,10 +11,9 @@ public interface CarteResidentRepository extends JpaRepository<CarteResident, In
 
     
     CarteResident findByReference(String reference);
-}
 
-    List<CarteResident> findByIdDemande(Integer idDemande);
-    CarteResident findByReference(String reference);
+    // @Query("SELECT cr FROM CarteResident cr WHERE cr.demande.id = :idDemande")
+    // List<CarteResident> findByIdDemande(Integer idDemande);
 }
 
 
