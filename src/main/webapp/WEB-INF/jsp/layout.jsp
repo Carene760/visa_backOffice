@@ -220,57 +220,46 @@
             </div>
 
             <ul class="sidebar-menu" id="sidebarMenu">
-                <!-- NOUVEAU TITRE -->
-                <li>
-                    <a href="/demande/nouveau?mode=nouveau_titre" class="sidebar-menu-item">
-                        Nouveau Titre
+                <!-- SPRINT 2 - Menu de Sélection de Type de Demande -->
+                <li style="margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.2);">
+                    <a href="/demande/nouveau?type=NOUVEAU_TITRE" class="sidebar-menu-item">
+                        ➕ Nouveau Titre
                     </a>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 8px 15px 0 15px;">
+                        Nouvelle demande
+                    </p>
                 </li>
 
-                <!-- AVEC DONNÉES ANTÉRIEURES -->
-                <li>
-                    <a href="#" class="sidebar-menu-item" onclick="toggleSubmenu(event, 'avecAnterieursSubmenu')">
-                        Avec Données Antérieures
-                        <span style="float: right;">▼</span>
+                <li style="margin-bottom: 25px;">
+                    <a href="/demande/duplicata" class="sidebar-menu-item">
+                        📋 Duplicata
                     </a>
-                    <ul class="sidebar-submenu" id="avecAnterieursSubmenu">
-                        <li>
-                            <a href="/demande/nouveau?mode=duplicata_carte_resident&avecAntecedents=1" class="sidebar-submenu-item">
-                                Duplicata Carte Résident
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/demande/nouveau?mode=transfert_visa&avecAntecedents=1" class="sidebar-submenu-item">
-                                Transfert Visa
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/demande/nouveau?mode=les_deux&avecAntecedents=1" class="sidebar-submenu-item">
-                                Les Deux
-                            </a>
-                        </li>
-                    </ul>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 8px 15px 0 15px;">
+                        Carte résidente
+                    </p>
                 </li>
 
-                <!-- SANS DONNÉES ANTÉRIEURES -->
-                <li>
-                    <a href="#" class="sidebar-menu-item" onclick="toggleSubmenu(event, 'sansAnterieursSubmenu')">
-                        Sans Données Antérieures
-                        <span style="float: right;">▼</span>
+                <li style="margin-bottom: 25px;">
+                    <a href="/demande/transfert" class="sidebar-menu-item">
+                        🔄 Transfert Visa
                     </a>
-                    <ul class="sidebar-submenu" id="sansAnterieursSubmenu">
-                        <li>
-                            <a href="/demande/nouveau?mode=nouvelle_demande&avecAntecedents=0" class="sidebar-submenu-item">
-                                Nouvelle Demande
-                            </a>
-                        </li>
-                    </ul>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 8px 15px 0 15px;">
+                        Nouveau passeport
+                    </p>
                 </li>
 
+                <!-- Séparateur -->
+                <li style="margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.2); border-top: 1px solid rgba(255,255,255,0.2); padding-top: 15px;">
+                </li>
+
+                <!-- Documents Modifiables - Toujours Visible -->
                 <li>
-                    <a href="/demande/documents-modifiables" class="sidebar-menu-item">
+                    <a href="/demande/documents-modifiables" class="sidebar-menu-item" style="background-color: rgba(26, 188, 156, 0.15); border-left: 3px solid var(--accent-teal);">
                         ✎ Documents Modifiables
                     </a>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 8px 15px 0 15px;">
+                        Modifier vos demandes
+                    </p>
                 </li>
             </ul>
         </aside>

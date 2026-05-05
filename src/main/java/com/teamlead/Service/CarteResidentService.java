@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.teamlead.Model.CarteResident;
 import com.teamlead.Model.Demande;
-import com.teamlead.Model.Passeport;
+import com.teamlead.Model.Visa;
 import com.teamlead.Repository.CarteResidentRepository;
 
 @Service
@@ -23,18 +23,18 @@ public class CarteResidentService {
      * Crée une carte de résident pour une demande
      * 
      * @param demande La demande associée
-     * @param passeport Le passeport associé
+     * @param visa Le visa associé
      * @param reference Référence unique de la carte
      * @param dateEntree Date d'entrée
      * @param dateExpiration Date d'expiration
      * @return CarteResident créée
      */
     @Transactional
-    public CarteResident creerCarteResident(Demande demande, Passeport passeport, String reference,
+    public CarteResident creerCarteResident(Demande demande, Visa visa, String reference,
             LocalDate dateEntree, LocalDate dateExpiration) {
         CarteResident carte = new CarteResident();
         carte.setDemande(demande);
-        carte.setPasseport(passeport);
+        carte.setVisa(visa);
         carte.setReference(reference);
         carte.setDateEntree(dateEntree);
         carte.setLieuEntree(demande.getDemandeur().getAdresseMadagascar());

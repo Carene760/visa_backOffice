@@ -38,22 +38,14 @@ public class Demande {
     private TypeDemande typeDemande;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_sous_type_demande", foreignKey = @ForeignKey(name = "demande_id_sous_type_demande_fkey"))
-    private SousTypeDemande sousTypeDemande;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_demande_source", foreignKey = @ForeignKey(name = "demande_id_demande_source_fkey"))
-    private Demande demandeSource;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_statut_demande", nullable = false, foreignKey = @ForeignKey(name = "demande_id_statut_demande_fkey"))
     private StatutDemande statutDemande;
 
     @Column(name = "avec_donnees_anterieures")
     private Boolean avecDonneesAnterieures = Boolean.FALSE;
 
-    @Column(name = "est_base_generee")
-    private Boolean estBaseGeneree = Boolean.FALSE;
+    @Column(name = "sans_donnees_anterieures")
+    private Boolean sansDonneesAnterieures = Boolean.FALSE;
 
     @Column(name = "date_demande")
     private LocalDateTime dateDemande;

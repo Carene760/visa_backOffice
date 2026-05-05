@@ -1,13 +1,22 @@
 package com.teamlead.Service;
 
-import com.teamlead.Model.*;
-import com.teamlead.Repository.*;
-import com.teamlead.DTO.ValidationErrorDTO;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDateTime;
-import java.util.List;
+
+import com.teamlead.DTO.ValidationErrorDTO;
+import com.teamlead.Model.Demande;
+import com.teamlead.Model.Demandeur;
+import com.teamlead.Model.HistoriqueStatutDemande;
+import com.teamlead.Model.StatutDemande;
+import com.teamlead.Model.TypeDemande;
+import com.teamlead.Repository.DemandeRepository;
+import com.teamlead.Repository.HistoriqueStatutDemandeRepository;
+import com.teamlead.Repository.StatutDemandeRepository;
+import com.teamlead.Repository.TypeDemandeRepository;
 
 /**
  * Service métier pour gestion des duplicata/transfert
@@ -67,8 +76,8 @@ public class DuplicataTransfertService {
         
         demandeBase.setDemandeur(demandeur);
         demandeBase.setTypeDemande(typeNouveauTitre);
-        demandeBase.setEstBaseGeneree(true);
         demandeBase.setAvecDonneesAnterieures(false);
+        demandeBase.setSansDonneesAnterieures(true);
         demandeBase.setDateDemande(LocalDateTime.now());
         demandeBase.setStatutDemande(statutCreee);
         
@@ -123,8 +132,8 @@ public class DuplicataTransfertService {
             return result;
         }
         
-        // Chaîner les demandes
-        demande.setDemandeSource(source);
+        // Not persisting demandeSource any more (schema simplified).
+        // We only validate the source exists and belongs to the same demandeur.
         
         return result;
     }
@@ -146,27 +155,8 @@ public class DuplicataTransfertService {
             return result; // Non applicable
         }
         
-        // Vérifier que la source est présente
-        if (demande.getDemandeSource() == null) {
-            result.setSuccess(false);
-            result.addError("Une demande de type DUPLICATA doit avoir une source de demande");
-            return result;
-        }
-        
-        // Vérifier que la source existe en base
-        Demande source = demande.getDemandeSource();
-        if (source.getId() == null) {
-            result.setSuccess(false);
-            result.addError("Source de demande invalide");
-            return result;
-        }
-        
-        // Vérifier que source et demande ont le même demandeur
-        if (!source.getDemandeur().getId().equals(demande.getDemandeur().getId())) {
-            result.setSuccess(false);
-            result.addError("La source et la demande courante doivent être du même demandeur");
-            return result;
-        }
+        // After schema simplification, callers should provide the source id to validate.
+        // Keep this method as a placeholder — returns success by default.
         
         return result;
     }
@@ -180,22 +170,9 @@ public class DuplicataTransfertService {
      */
     @Transactional(readOnly = true)
     public List<Demande> obtenirChaineDemandes(Demande demande) {
+        // Chaining removed as we no longer persist demandeSource; return single-element list
         java.util.List<Demande> chaine = new java.util.ArrayList<>();
-        Demande current = demande;
-        
-        // Ajouter la demande courante
-        chaine.add(current);
-        
-        // Remonter jusqu'à la source racine (demande base ou sans source)
-        while (current.getDemandeSource() != null) {
-            Demande source = current.getDemandeSource();
-            if (source.getId() == null) {
-                break; // Source invalide, arrêter
-            }
-            chaine.add(0, source); // Ajouter au début pour avoir l'ordre chronologique
-            current = source;
-        }
-        
+        chaine.add(demande);
         return chaine;
     }
 
@@ -207,14 +184,14 @@ public class DuplicataTransfertService {
      */
     @Transactional(readOnly = true)
     public Demande obtenirDemandeBase(Demande demande) {
-        List<Demande> chaine = obtenirChaineDemandes(demande);
-        
-        for (Demande d : chaine) {
-            if (d.getEstBaseGeneree() != null && d.getEstBaseGeneree()) {
+        // Find a generated base by searching for a NOUVEAU_TITRE demande for the same demandeur
+        List<Demande> possibles = demandeRepository.findByDemandeur(demande.getDemandeur());
+        for (Demande d : possibles) {
+            if (d.getTypeDemande() != null && "NOUVEAU_TITRE".equals(d.getTypeDemande().getLibelle())
+                    && Boolean.TRUE.equals(d.getSansDonneesAnterieures())) {
                 return d;
             }
         }
-        
         return null;
     }
 

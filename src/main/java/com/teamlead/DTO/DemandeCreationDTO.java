@@ -40,6 +40,7 @@ public class DemandeCreationDTO {
     // Informations de la demande
     private Integer idTypeDemande;
     private Integer idTypeMotif;
+    private Integer idTypeVisa;
     
     // Pièces à fournir (liste des IDs de documents présents)
     private List<Integer> piecesPresentes;
@@ -48,4 +49,5 @@ public class DemandeCreationDTO {
     private Integer idSousTypeDemande;
     private Integer idDemandeSource;
     private Boolean avecDonneesAnterieures;
+    private Boolean sansdonneesAnterieures; // Checkbox pour NOUVEAU_TITRE variante "sans données antérieures"
 }

@@ -21,19 +21,30 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.teamlead.DTO.DemandeCreationDTO;
+import com.teamlead.DTO.DemandeSearchResultDTO;
 import com.teamlead.DTO.ValidationErrorDTO;
 import com.teamlead.Exception.ValidationException;
+import com.teamlead.Model.CarteResident;
 import com.teamlead.Model.Demande;
 import com.teamlead.Model.Demandeur;
 import com.teamlead.Model.DocumentScan;
 import com.teamlead.Model.HistoriqueStatutDemande;
+import com.teamlead.Model.JournalActivite;
+import com.teamlead.Model.MotifTransfert;
 import com.teamlead.Model.Passeport;
+import com.teamlead.Model.PasseportVisa;
 import com.teamlead.Model.PieceAFournir;
+import com.teamlead.Model.TypeEvenement;
 import com.teamlead.Model.Visa;
+import com.teamlead.Repository.CarteResidentRepository;
 import com.teamlead.Repository.DemandeRepository;
 import com.teamlead.Repository.HistoriqueStatutDemandeRepository;
+import com.teamlead.Repository.JournalActiviteRepository;
+import com.teamlead.Repository.MotifTransfertRepository;
 import com.teamlead.Repository.PasseportRepository;
+import com.teamlead.Repository.PasseportVisaRepository;
 import com.teamlead.Repository.PieceAFournirRepository;
+import com.teamlead.Repository.TypeEvenementRepository;
 import com.teamlead.Repository.VisaRepository;
 import com.teamlead.Service.DemandeModificationService;
 import com.teamlead.Service.DemandeService;
@@ -106,6 +117,21 @@ public class DemandeController {
     @Autowired
     private GenerateurPDFService generateurPDFService;
 
+    @Autowired
+    private CarteResidentRepository carteResidentRepository;
+
+    @Autowired
+    private PasseportVisaRepository passeportVisaRepository;
+
+    @Autowired
+    private JournalActiviteRepository journalActiviteRepository;
+
+    @Autowired
+    private MotifTransfertRepository motifTransfertRepository;
+
+    @Autowired
+    private TypeEvenementRepository typeEvenementRepository;
+
 
     @GetMapping("/nouveau")
     public String afficherFormulaire(
@@ -148,6 +174,9 @@ public class DemandeController {
             @RequestParam String visa_date_expiration,
             @RequestParam Integer type_demande,
             @RequestParam Integer type_motif,
+            @RequestParam(required = false) Integer id_type_visa,
+            @RequestParam(required = false) String type_demande_sprint2,
+            @RequestParam(required = false) String sansdonneesAnterieures,
             @RequestParam(required = false) String[] documents,
             Model model) {
         DemandeCreationDTO dto = new DemandeCreationDTO();
@@ -171,6 +200,8 @@ public class DemandeController {
             dto.setDateExpirationVisa(parseDateOrNull(visa_date_expiration));
             dto.setIdTypeDemande(type_demande);
             dto.setIdTypeMotif(type_motif);
+            dto.setIdTypeVisa(id_type_visa);
+            dto.setSansdonneesAnterieures("true".equals(sansdonneesAnterieures));
 
             if (documents != null && documents.length > 0) {
                 java.util.List<Integer> ids = new java.util.ArrayList<>();
@@ -182,7 +213,17 @@ public class DemandeController {
             ValidationErrorDTO res = demandeService.creerNouvelleDemande(dto);
 
             if (res.isSuccess()) {
-                // Redirect to the detail view so the page is populated via GET
+                // Gestion de la redirection selon le type de demande Sprint 2
+                if ("NOUVEAU_TITRE".equals(type_demande_sprint2)) {
+                    if ("true".equals(sansdonneesAnterieures)) {
+                        // Redirection vers Duplicata pré-rempli
+                        return "redirect:/demande/duplicata?demandeId=" + res.getDemandeId();
+                    } else {
+                        // Redirection vers accueil
+                        return "redirect:/";
+                    }
+                }
+                // Pour maintenant, redirection par défaut vers detail
                 return "redirect:/demande/" + res.getDemandeId() + "/detail";
             } else {
                 model.addAttribute("erreur", res.getMessage());
@@ -696,5 +737,389 @@ public class DemandeController {
                         "attachment; filename=recepisse_" + id + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
+    }
+
+    /**
+     * Affiche le formulaire de recherche pour Duplicata
+     */
+    @GetMapping("/duplicata")
+    public String afficherDuplicata(
+            @RequestParam(required = false) Integer demandeId,
+            @RequestParam(required = false) String criterion,
+            @RequestParam(required = false) String searchValue,
+            Model model) {
+        model.addAttribute("pageTitle", "Duplicata - Carte Résidente");
+        
+        // Si une demande est pré-sélectionnée (après création sans données antérieures)
+        if (demandeId != null) {
+            DemandeSearchResultDTO demandePreselect = rechercherDemandes("numeroDemande", demandeId.toString(), true)
+                .stream()
+                .findFirst()
+                .orElse(null);
+            if (demandePreselect != null) {
+                model.addAttribute("demandePreselect", demandePreselect);
+                model.addAttribute("message", "Demande pré-sélectionnée. Vérifiez les informations puis confirmez le duplicata.");
+                
+                // Charger la CarteResident existante pour afficher le formulaire de duplicata
+                CarteResident carteResident = carteResidentRepository.findAll().stream()
+                    .filter(cr -> cr.getDemande().getId().equals(demandeId))
+                    .findFirst()
+                    .orElse(null);
+                if (carteResident != null) {
+                    model.addAttribute("carteResident", carteResident);
+                }
+            }
+        }
+        
+        // Effectuer la recherche si critères fournis
+        if (criterion != null && !criterion.isBlank() && searchValue != null && !searchValue.isBlank()) {
+            java.util.List<DemandeSearchResultDTO> results = rechercherDemandes(criterion, searchValue, true);
+            model.addAttribute("searchResults", results);
+        }
+        // Provide available motifs de transfert for the confirmation form
+        model.addAttribute("motifsTransfert", motifTransfertRepository.findAll());
+        
+        model.addAttribute("contentPage", "demande/duplicata.jsp");
+        return "layout";
+    }
+
+    /**
+     * Affiche le formulaire de transfert de visa
+     */
+    @GetMapping("/transfert")
+    public String afficherTransfertVisa(
+            @RequestParam(required = false) Integer demandeId,
+            @RequestParam(required = false) String criterion,
+            @RequestParam(required = false) String searchValue,
+            Model model) {
+        model.addAttribute("pageTitle", "Transfert de Visa");
+
+        // Si une demande est pré-sélectionnée depuis les résultats de recherche
+        if (demandeId != null) {
+            DemandeSearchResultDTO demandePreselect = rechercherDemandes("numeroDemande", demandeId.toString(), true)
+                .stream()
+                .findFirst()
+                .orElse(null);
+            if (demandePreselect != null) {
+                model.addAttribute("demandePreselect", demandePreselect);
+                model.addAttribute("message", "Demande pré-remplie. Vérifiez puis confirmez le transfert.");
+            }
+        }
+        
+        // Effectuer la recherche si critères fournis
+        if (criterion != null && !criterion.isBlank() && searchValue != null && !searchValue.isBlank()) {
+            java.util.List<DemandeSearchResultDTO> results = rechercherDemandes(criterion, searchValue, true);
+            model.addAttribute("searchResults", results);
+        }
+        
+        model.addAttribute("contentPage", "demande/transfert_visa.jsp");
+        return "layout";
+    }
+
+    /**
+     * POST handler pour la sélection d'une demande en duplicata
+     */
+    @PostMapping("/duplicata/select")
+    public String selectionnerDuplicata(
+            @RequestParam Integer demandeId,
+            Model model) {
+        try {
+            Demande demandeSource = demandeRepository.findById(demandeId).orElse(null);
+            if (demandeSource == null) {
+                model.addAttribute("erreur", "Demande source non trouvée.");
+                return "redirect:/demande/duplicata";
+            }
+
+            // Créer une CarteResident basée sur la demande source
+            CarteResident carteResident = new CarteResident();
+            carteResident.setReference("CART_" + System.currentTimeMillis());
+            carteResident.setDemande(demandeSource);
+            
+            // Récupérer le visa associé à la demande source (prefer VALIDE type)
+            Visa visaSource = visaRepository.findAll().stream()
+                .filter(v -> v.getDemande() != null && v.getDemande().getId().equals(demandeSource.getId()))
+                .filter(v -> v.getTypeVisa() != null && "VALIDE".equals(v.getTypeVisa().getLibelle()))
+                .findFirst()
+                .orElse(null);
+            
+            // If no VALIDE visa, take any visa for the demande
+            if (visaSource == null) {
+                visaSource = visaRepository.findAll().stream()
+                    .filter(v -> v.getDemande() != null && v.getDemande().getId().equals(demandeSource.getId()))
+                    .findFirst()
+                    .orElse(null);
+            }
+            
+            if (visaSource != null) {
+                carteResident.setVisa(visaSource);
+                carteResident.setDateEntree(LocalDate.now());
+                carteResident.setDateEmission(java.time.LocalDateTime.now());
+                
+                // Sauvegarder la CarteResident
+                carteResidentRepository.save(carteResident);
+                
+                // Créer une entrée dans le journal d'activité
+                TypeEvenement typeEvenement = typeEvenementRepository.findAll().stream()
+                    .filter(te -> "DUPLICATA".equals(te.getCode()))
+                    .findFirst()
+                    .orElse(null);
+                
+                if (typeEvenement != null && demandeSource.getDemandeur() != null) {
+                    JournalActivite journal = new JournalActivite();
+                    journal.setDemandeur(demandeSource.getDemandeur());
+                    journal.setTypeEvenement(typeEvenement);
+                    journal.setDateAction(java.time.LocalDateTime.now());
+                    journalActiviteRepository.save(journal);
+                }
+            }
+
+            model.addAttribute("message", "Duplicata créé avec succès.");
+            return "redirect:/demande/" + demandeId + "/detail";
+        } catch (Exception e) {
+            model.addAttribute("erreur", "Erreur lors de la création du duplicata : " + e.getMessage());
+            return "redirect:/demande/duplicata";
+        }
+    }
+
+    /**
+     * POST handler pour créer un duplicata de CarteResident
+     */
+    @PostMapping("/duplicata/creerDuplicataCarteResident")
+    public String creerDuplicataCarteResident(
+            @RequestParam Integer demandeId,
+            @RequestParam Integer carteResidentSourceId,
+            @RequestParam LocalDate dateEntree,
+            @RequestParam(required = false) String lieuEntree,
+            @RequestParam LocalDate dateExpiration,
+            @RequestParam LocalDate dateEmission,
+            @RequestParam String motif,
+            @RequestParam(required = false) String remarques,
+            Model model) {
+        try {
+            // Charger la CarteResident source
+            CarteResident carteResidentSource = carteResidentRepository.findById(carteResidentSourceId).orElse(null);
+            if (carteResidentSource == null) {
+                model.addAttribute("erreur", "Carte résident source non trouvée.");
+                return "redirect:/demande/duplicata";
+            }
+
+            // Charger la demande
+            Demande demande = demandeRepository.findById(demandeId).orElse(null);
+            if (demande == null) {
+                model.addAttribute("erreur", "Demande non trouvée.");
+                return "redirect:/demande/duplicata";
+            }
+
+            // Créer une nouvelle CarteResident (duplicata)
+            CarteResident carteResidentDuplicata = new CarteResident();
+            
+            // Générer une nouvelle référence unique avec suffixe DUPLICATA
+            String referenceBase = carteResidentSource.getReference();
+            String newReference = referenceBase + "_DUP_" + System.currentTimeMillis();
+            carteResidentDuplicata.setReference(newReference);
+            
+            // Copier les données de la source avec les valeurs modifiées si nécessaire
+            carteResidentDuplicata.setDateEntree(dateEntree);
+            carteResidentDuplicata.setLieuEntree(lieuEntree);
+            carteResidentDuplicata.setDateExpiration(dateExpiration);
+            carteResidentDuplicata.setDateEmission(java.time.LocalDateTime.now());
+            carteResidentDuplicata.setDemande(demande);
+            carteResidentDuplicata.setVisa(carteResidentSource.getVisa());
+            carteResidentDuplicata.setDateModification(java.time.LocalDateTime.now());
+            
+            // Sauvegarder la nouvelle CarteResident
+            carteResidentRepository.save(carteResidentDuplicata);
+
+            // Créer une entrée dans le journal d'activité avec le motif
+            TypeEvenement typeEvenement = typeEvenementRepository.findAll().stream()
+                .filter(te -> "DUPLICATA".equals(te.getCode()))
+                .findFirst()
+                .orElse(null);
+            
+            if (typeEvenement != null && demande.getDemandeur() != null) {
+                JournalActivite journal = new JournalActivite();
+                journal.setDemandeur(demande.getDemandeur());
+                journal.setTypeEvenement(typeEvenement);
+                journal.setDateAction(java.time.LocalDateTime.now());
+                journalActiviteRepository.save(journal);
+            }
+
+            model.addAttribute("succes", "Duplicata de carte résident créé avec succès. Nouvelle référence: " + newReference);
+            return "redirect:/demande/" + demandeId + "/detail";
+        } catch (Exception e) {
+            model.addAttribute("erreur", "Erreur lors de la création du duplicata : " + e.getMessage());
+            return "redirect:/demande/duplicata";
+        }
+    }
+
+    /**
+     * POST handler pour la sélection d'une demande en transfert de visa
+     */
+    @PostMapping("/transfert/select")
+    public String selectionnerTransfert(
+            @RequestParam Integer demandeId,
+            @RequestParam(required = false) Integer motifTransfertId,
+            Model model) {
+        try {
+            Demande demandeSource = demandeRepository.findById(demandeId).orElse(null);
+            if (demandeSource == null) {
+                model.addAttribute("erreur", "Demande source non trouvée.");
+                return "redirect:/demande/transfert";
+            }
+
+            // Récupérer le visa et le motif de transfert
+            Visa visaSource = visaRepository.findAll().stream()
+                .filter(v -> v.getDemande() != null && v.getDemande().getId().equals(demandeId))
+                .findFirst()
+                .orElse(null);
+
+            if (visaSource == null) {
+                model.addAttribute("erreur", "Visa source non trouvé.");
+                return "redirect:/demande/transfert";
+            }
+
+            // Créer un nouveau Passeport pour le demandeur
+            Passeport nouveauPasseport = new Passeport();
+            nouveauPasseport.setDemandeur(demandeSource.getDemandeur());
+            nouveauPasseport.setNumero("PASS_" + System.currentTimeMillis());
+            nouveauPasseport.setDateDelivrance(LocalDate.now());
+            nouveauPasseport.setDateExpiration(LocalDate.now().plusYears(10));
+            nouveauPasseport.setDateCreation(java.time.LocalDateTime.now());
+            passeportRepository.save(nouveauPasseport);
+
+            // Créer le lien PasseportVisa
+            MotifTransfert motif = (motifTransfertId != null) 
+                ? motifTransfertRepository.findById(motifTransfertId).orElse(null)
+                : motifTransfertRepository.findAll().stream().findFirst().orElse(null);
+
+            if (motif != null) {
+                PasseportVisa passeportVisa = new PasseportVisa();
+                passeportVisa.setPasseport(nouveauPasseport);
+                passeportVisa.setVisa(visaSource);
+                passeportVisa.setDateAssociation(LocalDate.now());
+                passeportVisa.setMotifTransfert(motif);
+                passeportVisa.setDateCreation(java.time.LocalDateTime.now());
+                passeportVisaRepository.save(passeportVisa);
+
+                // Créer une entrée dans le journal d'activité
+                TypeEvenement typeEvenement = typeEvenementRepository.findAll().stream()
+                    .filter(te -> "TRANSFERT_VISA".equals(te.getCode()))
+                    .findFirst()
+                    .orElse(null);
+
+                if (typeEvenement != null && demandeSource.getDemandeur() != null) {
+                    JournalActivite journal = new JournalActivite();
+                    journal.setDemandeur(demandeSource.getDemandeur());
+                    journal.setTypeEvenement(typeEvenement);
+                    journal.setDateAction(java.time.LocalDateTime.now());
+                    journalActiviteRepository.save(journal);
+                }
+            }
+
+            model.addAttribute("message", "Transfert de visa créé avec succès.");
+            return "redirect:/demande/" + demandeId + "/detail";
+        } catch (Exception e) {
+            model.addAttribute("erreur", "Erreur lors de la création du transfert : " + e.getMessage());
+            return "redirect:/demande/transfert";
+        }
+    }
+
+    /**
+     * Effectue la recherche multi-critères de demandes avec enrichissement des données
+     */
+    private java.util.List<DemandeSearchResultDTO> rechercherDemandes(String criterion, String searchValue) {
+        return rechercherDemandes(criterion, searchValue, false);
+    }
+
+    private java.util.List<DemandeSearchResultDTO> rechercherDemandes(String criterion, String searchValue, boolean onlyVisaValide) {
+        java.util.List<Demande> results = new java.util.ArrayList<>();
+        
+        try {
+            switch(criterion) {
+                case "numeroPasseport":
+                    List<Passeport> passports = passeportRepository.findAll().stream()
+                        .filter(p -> p.getNumero() != null && p.getNumero().contains(searchValue))
+                        .collect(java.util.stream.Collectors.toList());
+                    
+                    for (Passeport p : passports) {
+                        if (p.getDemandeur() != null) {
+                            List<Demande> demandesForDemandeur = demandeRepository.findAll().stream()
+                                .filter(d -> d.getDemandeur() != null && 
+                                        d.getDemandeur().getId().equals(p.getDemandeur().getId()))
+                                .collect(java.util.stream.Collectors.toList());
+                            results.addAll(demandesForDemandeur);
+                        }
+                    }
+                    break;
+                    
+                case "numeroDemande":
+                    try {
+                        Integer id = Integer.parseInt(searchValue);
+                        Demande d = demandeRepository.findById(id).orElse(null);
+                        if (d != null) results.add(d);
+                    } catch (NumberFormatException e) {
+                        // Ignorer si pas un nombre
+                    }
+                    break;
+                    
+                case "nomDemandeur":
+                    String searchLower = searchValue.toLowerCase();
+                    results = demandeRepository.findAll().stream()
+                        .filter(d -> d.getDemandeur() != null && 
+                                (d.getDemandeur().getNom().toLowerCase().contains(searchLower) ||
+                                (d.getDemandeur().getPrenom() != null && 
+                                 d.getDemandeur().getPrenom().toLowerCase().contains(searchLower))))
+                        .collect(java.util.stream.Collectors.toList());
+                    break;
+                    
+                case "numeroVisa":
+                    List<Visa> visas = visaRepository.findAll().stream()
+                        .filter(v -> v.getReference() != null && v.getReference().contains(searchValue))
+                        .collect(java.util.stream.Collectors.toList());
+                    
+                    for (Visa v : visas) {
+                        List<Demande> demandesForVisa = demandeRepository.findAll().stream()
+                            .filter(d -> d.getId() != null &&
+                                    d.getId().equals(v.getDemande() != null ? v.getDemande().getId() : null))
+                            .collect(java.util.stream.Collectors.toList());
+                        results.addAll(demandesForVisa);
+                    }
+                    break;
+            }
+        } catch (Exception e) {
+            results.clear();
+        }
+        
+        // Supprimer doublons et enrichir avec passeports/visas
+        return results.stream()
+            .distinct()
+            .map(demande -> {
+                Passeport passeport = passeportRepository.findAll().stream()
+                    .filter(p -> p.getDemandeur() != null && 
+                            demande.getDemandeur() != null &&
+                            p.getDemandeur().getId().equals(demande.getDemandeur().getId()))
+                    .findFirst()
+                    .orElse(null);
+                
+                Visa visa = visaRepository.findAll().stream()
+                    .filter(v -> v.getDemande() != null && v.getDemande().getId().equals(demande.getId()))
+                    .findFirst()
+                    .orElse(null);
+                
+                return DemandeSearchResultDTO.fromDemande(demande, passeport, visa);
+            })
+            .filter(dto -> {
+                if (!onlyVisaValide) {
+                    return true;
+                }
+                Visa visa = dto.getVisa();
+                boolean hasValideVisa = visa != null
+                        && visa.getTypeVisa() != null
+                        && visa.getTypeVisa().getLibelle() != null
+                        && "VALIDE".equalsIgnoreCase(visa.getTypeVisa().getLibelle().trim());
+                boolean hasPasseport = dto.getPasseport() != null;
+                return hasValideVisa && hasPasseport;
+            })
+            .collect(java.util.stream.Collectors.toList());
     }
 }

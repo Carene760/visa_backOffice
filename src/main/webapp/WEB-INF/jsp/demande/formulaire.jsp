@@ -228,6 +228,38 @@
         line-height: 1.6;
     }
 
+    .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: #f9f9f9;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        margin-top: 12px;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .checkbox-row label {
+        margin: 0;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .checkbox-description {
+        display: block;
+        font-size: 12px;
+        color: var(--text-soft);
+        margin-top: 4px;
+        font-weight: 400;
+    }
+
     @media (max-width: 900px) {
         .document-list {
             grid-template-columns: 1fr;
@@ -275,6 +307,73 @@
     </c:if>
 
     <form method="post" action="/demande/creer">
+        <!-- Champ caché pour passer le type de demande Sprint 2 -->
+        <input type="hidden" name="type_demande_sprint2" value="${param.type}">
+        <!-- Champ caché pour l'identifiant du type de visa (1=TRANSFORMABLE, 2=VALIDE) -->
+        <input type="hidden" id="id_type_visa" name="id_type_visa" value="1">
+
+        <!-- SECTION 1: Type de Demande (déplacée en première position) -->
+        <div class="form-section">
+            <h3>Type de Demande</h3>
+            <div class="form-rows full">
+                <div class="form-group">
+                    <label>Nature de la demande</label>
+                    <input type="text" value="${not empty formContextTitle ? formContextTitle : pageTitle}" readonly>
+                </div>
+            </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        var checkbox = document.getElementById('sansdonneesAnterieures');
+                        var hidden = document.getElementById('id_type_visa');
+                        var display = document.getElementById('visa_type_display');
+                        function updateVisaType() {
+                            if (!hidden || !display) return;
+                            if (checkbox && checkbox.checked) {
+                                hidden.value = '2';
+                                display.value = 'VALIDE';
+                            } else {
+                                hidden.value = '1';
+                                display.value = 'TRANSFORMABLE';
+                            }
+                        }
+                        if (checkbox) checkbox.addEventListener('change', updateVisaType);
+                        updateVisaType();
+                    });
+                </script>
+            <div class="form-rows">
+                <div class="form-group">
+                    <label for="type_motif" class="required">Statut du visa demandé</label>
+                    <select id="type_motif" name="type_motif" onchange="updateDocuments()">
+                        <option value="">-- Sélectionner --</option>
+                        <c:forEach var="motif" items="${typeMotifs}">
+                            <option value="${motif.id}" <c:if test="${motif.id == demandeDTO.idTypeMotif}">selected</c:if>>${motif.libelle}</option>
+                        </c:forEach>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="type_demande" class="required">Type de Demande</label>
+                    <input type="hidden" id="type_demande" name="type_demande" value="1">
+                    <input type="text" value="NOUVEAU_TITRE" readonly>
+                    <p class="info-note">Type par défaut: NOUVEAU_TITRE (id=1)</p>
+                </div>
+            </div>
+            
+            <!-- Checkbox "Sans données antérieures" pour NOUVEAU_TITRE -->
+            <c:if test="${param.type == 'NOUVEAU_TITRE'}">
+                <div class="checkbox-row">
+                    <input type="checkbox" id="sansdonneesAnterieures" name="sansdonneesAnterieures" value="true" 
+                           <c:if test="${demandeDTO.sansdonneesAnterieures}">checked</c:if>>
+                    <label for="sansdonneesAnterieures">
+                        Cette demande est sans données antérieures
+                        <span class="checkbox-description">
+                            Cochez cette case si cette demande existait déjà et est approuvée, mais vous n'avez pas les données précédentes.
+                            Vous serez redirigé vers le formulaire Duplicata pré-rempli après création.
+                        </span>
+                    </label>
+                </div>
+            </c:if>
+        </div>
+
         <div class="form-section">
             <h3>Informations Personnelles</h3>
             <div class="form-rows">
@@ -374,38 +473,7 @@
                 </div>
                 <div class="form-group">
                     <label>Type de visa (conception)</label>
-                    <input type="text" value="TRANSFORMABLE" readonly>
-                </div>
-            </div>
-        </div>
-
-        <div class="form-section">
-            <h3>Type de Demande</h3>
-            <div class="form-rows full">
-                <div class="form-group">
-                    <label>Nature de la demande</label>
-                    <input type="text" value="${not empty formContextTitle ? formContextTitle : pageTitle}" readonly>
-                </div>
-            </div>
-            <div class="form-rows">
-                <div class="form-group">
-                    <label for="type_motif" class="required">Statut du visa demandé</label>
-                    <select id="type_motif" name="type_motif" onchange="updateDocuments()">
-                        <option value="">-- Sélectionner --</option>
-                        <c:forEach var="motif" items="${typeMotifs}">
-                            <option value="${motif.id}" <c:if test="${motif.id == demandeDTO.idTypeMotif}">selected</c:if>>${motif.libelle}</option>
-                        </c:forEach>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="type_demande" class="required">Type de Demande</label>
-                    <select id="type_demande" name="type_demande">
-                        <option value="">-- Sélectionner --</option>
-                        <c:forEach var="type" items="${typesDemande}">
-                            <option value="${type.id}" <c:if test="${type.id == demandeDTO.idTypeDemande}">selected</c:if>>${type.libelle}</option>
-                        </c:forEach>
-                    </select>
-                    <p class="info-note">Le formulaire change selon le mode choisi dans le sidebar.</p>
+                    <input type="text" id="visa_type_display" value="TRANSFORMABLE" readonly>
                 </div>
             </div>
         </div>
@@ -481,6 +549,9 @@
 <script>
     const modeTestParam = '${param.modeTest}';
     const modeTestEnabled = modeTestParam === '1' || modeTestParam === 'true' || modeTestParam === 'on';
+    
+    // Garde en mémoire les cases cochées des pièces communes (après erreur ou changement motif)
+    let checkedDocuments = new Set();
 
     function updateDocuments() {
         const motifSelect = document.getElementById('type_motif');
@@ -509,6 +580,14 @@
             } else {
                 specificContainer.innerHTML = '<div class="document-list">' + itemsHtml.join('') + '</div>';
             }
+            
+            // Recheck les spécifiques qui étaient cochées
+            const newCheckboxes = specificContainer.querySelectorAll('input[type="checkbox"]');
+            newCheckboxes.forEach(checkbox => {
+                if (checkedDocuments.has(checkbox.value)) {
+                    checkbox.checked = true;
+                }
+            });
         } else {
             specificSection.style.display = 'none';
         }
@@ -548,6 +627,7 @@
         if (checkboxes.length > 0) {
             checkboxes.forEach(checkbox => {
                 checkbox.checked = true;
+                checkedDocuments.add(checkbox.value);
             });
         }
 
@@ -563,13 +643,60 @@
         selectAll.addEventListener('change', function () {
             document.querySelectorAll('input[name="documents"]').forEach(checkbox => {
                 checkbox.checked = selectAll.checked;
+                if (selectAll.checked) {
+                    checkedDocuments.add(checkbox.value);
+                } else {
+                    checkedDocuments.delete(checkbox.value);
+                }
             });
         });
     }
 
+    function trackDocumentCheckboxes() {
+        document.addEventListener('change', function(e) {
+            if (e.target.name === 'documents') {
+                if (e.target.checked) {
+                    checkedDocuments.add(e.target.value);
+                } else {
+                    checkedDocuments.delete(e.target.value);
+                }
+            }
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
+        // Restaure les cases cochées lors du chargement (après erreur de formulaire)
+        document.querySelectorAll('input[name="documents"]:checked').forEach(checkbox => {
+            checkedDocuments.add(checkbox.value);
+        });
+        
+        trackDocumentCheckboxes();
         updateDocuments();
         bindSelectAll();
+        // Auto-select all documents when 'sans données antérieures' is checked
+        const sansCheckbox = document.getElementById('sansdonneesAnterieures');
+        if (sansCheckbox) {
+            sansCheckbox.addEventListener('change', function () {
+                const selectAll = document.getElementById('selectAllDocuments');
+                const specificContainer = document.getElementById('specific-docs-container');
+                if (this.checked) {
+                    if (selectAll) { selectAll.checked = true; selectAll.dispatchEvent(new Event('change')); }
+                    // check visible specific docs
+                    if (specificContainer) {
+                        specificContainer.querySelectorAll('input[name="documents"]').forEach(cb => { cb.checked = true; checkedDocuments.add(cb.value); });
+                    }
+                } else {
+                    if (selectAll) { selectAll.checked = false; selectAll.dispatchEvent(new Event('change')); }
+                    if (specificContainer) {
+                        specificContainer.querySelectorAll('input[name="documents"]').forEach(cb => { cb.checked = false; checkedDocuments.delete(cb.value); });
+                    }
+                }
+            });
+            // apply initial state if checked on load
+            if (sansCheckbox.checked) {
+                sansCheckbox.dispatchEvent(new Event('change'));
+            }
+        }
         if (modeTestEnabled) {
             applyTestDefaults();
         }

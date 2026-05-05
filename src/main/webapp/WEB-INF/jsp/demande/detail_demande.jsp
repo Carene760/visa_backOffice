@@ -444,9 +444,9 @@
                 </div>
             </div>
 
-            <!-- Card 2: Source de Demande -->
+            <!-- Card 2: Mode de Demande -->
             <div class="card">
-                <h2>Source de Demande</h2>
+                <h2>Mode de Demande</h2>
                 <div class="detail-row">
                     <span class="detail-label">Mode:</span>
                     <span class="detail-value">
@@ -454,35 +454,18 @@
                     </span>
                 </div>
 
-                <c:if test="${demande.demandeSource != null}">
-                    <div class="source-demand">
-                        <strong>Basée sur la demande source:</strong>
-                        <br>
-                        <a href="/demande/${demande.demandeSource.id}/detail">Dossier source #${demande.demandeSource.id}</a>
-                        <br>
-                        <small>Type: ${demande.demandeSource.typeDemande.libelle}</small>
-                    </div>
-                </c:if>
-
-                <c:if test="${demande.demandeSource == null && demande.typeDemande.libelle == 'DUPLICATA'}">
-                    <div class="alert alert-warning">
-                        <strong>⚠ Aucune source identifiée</strong>
-                        <p>Ce dossier est en mode "sans données antérieures" et n'a pas de source liée. Une demande base sera créée automatiquement lors du traitement.</p>
-                    </div>
-                </c:if>
-
-                <c:if test="${demande.estBaseGeneree}">
-                    <div class="alert alert-info">
-                        <strong>ℹ Demande Base Générée</strong>
-                        <p>Ceci est une demande base générée automatiquement pour les duplicata/transfert sans antécédents.</p>
-                    </div>
-                </c:if>
-
                 <div class="mode-indicator">
                     <span class="checkbox-indicator ${demande.avecDonneesAnterieures ? '' : 'unchecked'}">
                         ${demande.avecDonneesAnterieures ? '✓' : ''}
                     </span>
                     Avec données antérieures
+                </div>
+
+                <div class="mode-indicator">
+                    <span class="checkbox-indicator ${demande.sansDonneesAnterieures ? '' : 'unchecked'}">
+                        ${demande.sansDonneesAnterieures ? '✓' : ''}
+                    </span>
+                    Sans données antérieures
                 </div>
             </div>
 
@@ -497,12 +480,7 @@
                     <span class="detail-label">Motif:</span>
                     <span class="detail-value">${demande.typeMotif.libelle}</span>
                 </div>
-                <c:if test="${demande.sousTypeDemande != null}">
-                    <div class="detail-row">
-                        <span class="detail-label">Sous-Type:</span>
-                        <span class="detail-value">${demande.sousTypeDemande.libelle}</span>
-                    </div>
-                </c:if>
+                <!-- sousTypeDemande removed: simplified view -->
             </div>
 
             <!-- Card 4: Complétude du Dossier -->
@@ -521,7 +499,10 @@
                     <p style="font-size: 13px; color: #666; margin-top: 10px;">
                         ${completion.message}
                     </p>
-                    <c:if test="${not empty completion.errors}">
+
+
+
+                                    <c:if test="${not empty completion.errors}">
                         <ul style="margin-left: 20px; margin-top: 10px; font-size: 13px;">
                             <c:forEach var="err" items="${completion.errors}">
                                 <li style="margin: 5px 0; ${fn:contains(err, 'OBLIGATOIRE') ? 'color: #e74c3c' : 'color: #f39c12'}">

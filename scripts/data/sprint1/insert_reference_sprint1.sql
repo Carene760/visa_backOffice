@@ -36,4 +36,7 @@ insert into situation_matrimoniale (libelle) values ('CELIBATAIRE'), ('MARIE(E)'
 insert into nationalite (libelle) values ('FRANCAIS(E)'), ('ANGLOPHONE'), ('CHINOIS(E)'), ('INDIEN(NE)'), ('AUTRE');
 
 insert into type_visa(libelle) values ('TRANSFORMABLE');
+insert into type_visa(libelle) values ('VALIDE');
 insert into type_evenement(code) values ('CREATION DEMANDE');
+insert into type_evenement(code) values ('DUPLICATA');
+insert into type_evenement(code) values ('TRANSFERT_VISA');

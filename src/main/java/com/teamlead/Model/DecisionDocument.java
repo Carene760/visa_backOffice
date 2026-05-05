@@ -29,7 +29,6 @@ public class DecisionDocument {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_demande", foreignKey = @ForeignKey(name = "decision_document_id_demande_fkey"))
     private Demande demande;
