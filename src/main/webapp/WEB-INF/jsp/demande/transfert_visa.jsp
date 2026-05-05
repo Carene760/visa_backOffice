@@ -80,6 +80,82 @@
         margin-top: 20px;
     }
 
+    .transfer-panel {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-top: 18px;
+    }
+
+    .transfer-card {
+        border: 1px solid #d7d7d7;
+        border-radius: 4px;
+        padding: 18px;
+        background: #fcfcfc;
+    }
+
+    .transfer-card h4 {
+        margin-top: 0;
+        margin-bottom: 12px;
+        color: var(--text-main);
+        border-left: 4px solid var(--accent-teal);
+        padding-left: 10px;
+    }
+
+    .transfer-form {
+        margin-top: 18px;
+        display: grid;
+        gap: 16px;
+    }
+
+    .transfer-form .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .transfer-form .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .transfer-form label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    .transfer-form input,
+    .transfer-form select {
+        padding: 10px 12px;
+        border: 1px solid #8f8f8f;
+        border-radius: 2px;
+        font-size: 14px;
+        background: #fff;
+    }
+
+    .transfer-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-top: 10px;
+    }
+
+    .btn-linker {
+        padding: 10px 24px;
+        background: var(--accent-dark);
+        color: white;
+        border: none;
+        border-radius: 2px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .btn-linker:hover {
+        opacity: 0.92;
+    }
+
     .results-title {
         font-size: 18px;
         font-weight: 700;
@@ -171,70 +247,15 @@
     
     <div class="info-box">
         <h3>Mode Transfert de Visa</h3>
-        <p>Recherchez une demande existante avec un visa actif. Vous pourrez alors créer un nouveau passeport et lier le visa existant à ce nouveau passeport.</p>
+        <p>Recherchez une demande avec visa valide, puis sélectionnez-la pour afficher le passeport actuel, le visa à transférer et saisir le nouveau passeport avant de lier les deux.</p>
         <c:if test="${not empty message}">
-            <div class="preselect-info" style="margin-top: 16px; background: #d4edda; border: 1px solid #c3e6cb;">
-                <h4 style="margin-top: 0; margin-bottom: 8px;">Demande Pré-sélectionnée</h4>
-                <p>${message}</p>
-                <c:if test="${not empty demandePreselect}">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px;">
-                        <tr style="border-bottom: 1px solid #c3e6cb;">
-                            <td style="padding: 6px; font-weight: 600; width: 30%; background: #f0f8f5;">Numéro Demande:</td>
-                            <td style="padding: 6px;">#${demandePreselect.id}</td>
-                        </tr>
-                        <tr style="border-bottom: 1px solid #c3e6cb;">
-                            <td style="padding: 6px; font-weight: 600; background: #f0f8f5;">Demandeur:</td>
-                            <td style="padding: 6px;">${demandePreselect.demandeur.nom} ${demandePreselect.demandeur.prenom}</td>
-                        </tr>
-                        <tr style="border-bottom: 1px solid #c3e6cb;">
-                            <td style="padding: 6px; font-weight: 600; background: #f0f8f5;">Visa Référence:</td>
-                            <td style="padding: 6px;">
-                                <c:if test="${not empty demandePreselect.visa}">
-                                    ${demandePreselect.visa.reference}
-                                </c:if>
-                                <c:if test="${empty demandePreselect.visa}">
-                                    N/A
-                                </c:if>
-                            </td>
-                        </tr>
-                        <tr style="border-bottom: 1px solid #c3e6cb;">
-                            <td style="padding: 6px; font-weight: 600; background: #f0f8f5;">Ancien Passeport:</td>
-                            <td style="padding: 6px;">
-                                <c:if test="${not empty demandePreselect.passeport}">
-                                    ${demandePreselect.passeport.numero}
-                                </c:if>
-                                <c:if test="${empty demandePreselect.passeport}">
-                                    N/A
-                                </c:if>
-                            </td>
-                        </tr>
-                        <tr style="border-bottom: 1px solid #c3e6cb;">
-                            <td style="padding: 6px; font-weight: 600; background: #f0f8f5;">Statut:</td>
-                            <td style="padding: 6px;">
-                                <c:if test="${not empty demandePreselect.statut}">
-                                    ${demandePreselect.statut.libelle}
-                                </c:if>
-                            </td>
-                        </tr>
-                    </table>
-                    <p style="margin-top: 8px; font-size: 13px; color: #155724;">
-                        ✓ Cliquez le bouton <strong>Confirmer Transfert</strong> ci-dessous pour créer le nouveau passeport et lier le visa.
-                    </p>
-                    <form method="post" action="/demande/transfert/select" style="margin-top: 8px;">
-                        <input type="hidden" name="demandeId" value="${demandePreselect.id}">
-                        <c:if test="${not empty motifsTransfert}">
-                            <div style="margin:8px 0;">
-                                <label for="motifTransfertId">Motif du Transfert</label>
-                                <select id="motifTransfertId" name="motifTransfertId">
-                                    <c:forEach var="m" items="${motifsTransfert}">
-                                        <option value="${m.id}">${m.libelle}</option>
-                                    </c:forEach>
-                                </select>
-                            </div>
-                        </c:if>
-                        <button type="submit" class="btn-select" style="padding: 10px 24px; font-size: 15px;">✓ Confirmer Transfert</button>
-                    </form>
-                </c:if>
+            <div style="margin-top: 12px; padding: 12px 14px; background: #d4edda; border: 1px solid #c3e6cb; color: #155724; border-radius: 4px;">
+                ${message}
+            </div>
+        </c:if>
+        <c:if test="${not empty erreur}">
+            <div style="margin-top: 12px; padding: 12px 14px; background: #f8d7da; border: 1px solid #f1b0b7; color: #842029; border-radius: 4px;">
+                ${erreur}
             </div>
         </c:if>
     </div>
@@ -264,71 +285,161 @@
     </form>
 </div>
 
-<!-- Section Résultats (affichée si recherche effectuée) -->
-<c:if test="${not empty searchResults}">
+<!-- Section Résultats / Formulaire -->
+<c:if test="${not empty demandeSelectionnee}">
+    <div class="results-section">
+        <h3 class="results-title">Formulaire de Transfert</h3>
+        <p style="margin-top: 0; color: var(--text-soft);">La demande sélectionnée remplace la liste. Vous pouvez maintenant compléter le nouveau passeport et lier le visa.</p>
+
+        <div class="transfer-panel">
+            <div class="transfer-card">
+                <h4>Demande et éléments à transférer</h4>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <tr style="border-bottom: 1px solid #e5e5e5;">
+                        <td style="padding: 8px 0; font-weight: 600; width: 40%;">Numéro demande</td>
+                        <td style="padding: 8px 0;">#${demandeSelectionnee.id}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e5e5e5;">
+                        <td style="padding: 8px 0; font-weight: 600;">Demandeur</td>
+                        <td style="padding: 8px 0;">${demandeSelectionnee.demandeur.nom} ${demandeSelectionnee.demandeur.prenom}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e5e5e5;">
+                        <td style="padding: 8px 0; font-weight: 600;">Ancien passeport</td>
+                        <td style="padding: 8px 0;">
+                            <c:choose>
+                                <c:when test="${not empty demandeSelectionnee.passeport}">
+                                    ${demandeSelectionnee.passeport.numero}
+                                </c:when>
+                                <c:otherwise>N/A</c:otherwise>
+                            </c:choose>
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e5e5e5;">
+                        <td style="padding: 8px 0; font-weight: 600;">Visa à transférer</td>
+                        <td style="padding: 8px 0;">
+                            <c:choose>
+                                <c:when test="${not empty demandeSelectionnee.visa}">
+                                    ${demandeSelectionnee.visa.reference}
+                                    <c:if test="${not empty demandeSelectionnee.visa.dateExpiration}">
+                                        <span style="color: var(--text-soft);">(expire le ${demandeSelectionnee.visa.dateExpiration})</span>
+                                    </c:if>
+                                </c:when>
+                                <c:otherwise>N/A</c:otherwise>
+                            </c:choose>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: 600;">Statut</td>
+                        <td style="padding: 8px 0;">
+                            <c:choose>
+                                <c:when test="${not empty demandeSelectionnee.statut}">
+                                    ${demandeSelectionnee.statut.libelle}
+                                </c:when>
+                                <c:otherwise>N/A</c:otherwise>
+                            </c:choose>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="transfer-card">
+                <h4>Nouveau passeport</h4>
+                <form method="post" action="/demande/transfert/lier" class="transfer-form">
+                    <input type="hidden" name="demandeId" value="${demandeSelectionnee.id}">
+                    <div class="form-group">
+                        <label for="numeroPasseport">Numéro du nouveau passeport *</label>
+                        <input type="text" id="numeroPasseport" name="numeroPasseport" required placeholder="Saisir le numéro du nouveau passeport">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dateDelivrancePasseport">Date de délivrance *</label>
+                            <input type="date" id="dateDelivrancePasseport" name="dateDelivrancePasseport" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dateExpirationPasseport">Date d'expiration *</label>
+                            <input type="date" id="dateExpirationPasseport" name="dateExpirationPasseport" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="motifTransfertId">Motif de transfert *</label>
+                        <select id="motifTransfertId" name="motifTransfertId" required>
+                            <option value="">-- Sélectionner un motif --</option>
+                            <c:forEach var="m" items="${motifsTransfert}">
+                                <option value="${m.id}">${m.libelle}</option>
+                            </c:forEach>
+                        </select>
+                    </div>
+                    <div class="transfer-actions">
+                        <button type="submit" class="btn-linker">Lier</button>
+                        <a href="/demande/transfert" class="btn-select" style="text-decoration: none; display: inline-block;">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</c:if>
+
+<c:if test="${empty demandeSelectionnee and not empty searchResults}">
     <div class="results-section">
         <h3 class="results-title">Résultats de Recherche</h3>
-        
-        <c:if test="${empty searchResults}">
+
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Numéro Demande</th>
+                    <th>Demandeur</th>
+                    <th>Visa Référence</th>
+                    <th>Date Expiration Visa</th>
+                    <th>Passeport (Ancien)</th>
+                    <th>Statut</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <c:forEach var="demande" items="${searchResults}">
+                    <tr>
+                        <td>#${demande.id}</td>
+                        <td>${demande.demandeur.nom} ${demande.demandeur.prenom}</td>
+                        <td>
+                            <c:choose>
+                                <c:when test="${not empty demande.visa}">${demande.visa.reference}</c:when>
+                                <c:otherwise>N/A</c:otherwise>
+                            </c:choose>
+                        </td>
+                        <td>
+                            <c:choose>
+                                <c:when test="${not empty demande.visa and not empty demande.visa.dateExpiration}">${demande.visa.dateExpiration}</c:when>
+                                <c:otherwise>N/A</c:otherwise>
+                            </c:choose>
+                        </td>
+                        <td>
+                            <c:choose>
+                                <c:when test="${not empty demande.passeport}">${demande.passeport.numero}</c:when>
+                                <c:otherwise>N/A</c:otherwise>
+                            </c:choose>
+                        </td>
+                        <td>
+                            <c:choose>
+                                <c:when test="${not empty demande.statut}">${demande.statut.libelle}</c:when>
+                                <c:otherwise>N/A</c:otherwise>
+                            </c:choose>
+                        </td>
+                        <td>
+                            <a href="/demande/transfert?demandeId=${demande.id}" class="btn-select" style="text-decoration: none; display: inline-block;">Sélectionner</a>
+                        </td>
+                    </tr>
+                </c:forEach>
+            </tbody>
+        </table>
+    </div>
+</c:if>
+
+<c:if test="${empty demandeSelectionnee and empty searchResults}">
+    <c:if test="${not empty criterion and not empty searchValue}">
+        <div class="results-section">
             <div class="no-results">
                 Aucune demande avec visa ne correspond à vos critères. Veuillez vérifier et réessayer.
             </div>
-        </c:if>
-
-        <c:if test="${not empty searchResults}">
-            <table class="results-table">
-                <thead>
-                    <tr>
-                        <th>Numéro Demande</th>
-                        <th>Demandeur</th>
-                        <th>Visa Référence</th>
-                        <th>Date Expiration Visa</th>
-                        <th>Passeport (Ancien)</th>
-                        <th>Statut</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <c:forEach var="demande" items="${searchResults}">
-                        <tr>
-                            <td>#${demande.id}</td>
-                            <td>${demande.demandeur.nom} ${demande.demandeur.prenom}</td>
-                            <td>
-                                <c:if test="${not empty demande.visa}">
-                                    ${demande.visa.reference}
-                                </c:if>
-                                <c:if test="${empty demande.visa}">
-                                    N/A
-                                </c:if>
-                            </td>
-                            <td>
-                                    <c:if test="${not empty demande.visa and not empty demande.visa.dateExpiration}">
-                                    ${demande.visa.dateExpiration}
-                                </c:if>
-                                    <c:if test="${empty demande.visa or empty demande.visa.dateExpiration}">
-                                    N/A
-                                </c:if>
-                            </td>
-                                <td>
-                                    <c:if test="${not empty demande.passeport}">
-                                        ${demande.passeport.numero}
-                                    </c:if>
-                                    <c:if test="${empty demande.passeport}">
-                                        N/A
-                                    </c:if>
-                                </td>
-                                <td>
-                                    <c:if test="${not empty demande.statut}">
-                                        ${demande.statut.libelle}
-                                    </c:if>
-                                </td>
-                            <td>
-                                <a href="/demande/transfert?demandeId=${demande.id}" class="btn-select" style="text-decoration: none; display: inline-block;">Sélectionner</a>
-                            </td>
-                        </tr>
-                    </c:forEach>
-                </tbody>
-            </table>
-        </c:if>
-    </div>
+        </div>
+    </c:if>
 </c:if>

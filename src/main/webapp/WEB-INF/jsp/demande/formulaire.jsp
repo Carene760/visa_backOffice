@@ -1,3 +1,4 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 
 <style>
@@ -308,7 +309,7 @@
 
     <form method="post" action="/demande/creer">
         <!-- Champ caché pour passer le type de demande Sprint 2 -->
-        <input type="hidden" name="type_demande_sprint2" value="${param.type}">
+        <input type="hidden" name="type_demande_sprint2" value="${not empty typeDemandeSprint2 ? typeDemandeSprint2 : param.type}">
         <!-- Champ caché pour l'identifiant du type de visa (1=TRANSFORMABLE, 2=VALIDE) -->
         <input type="hidden" id="id_type_visa" name="id_type_visa" value="1">
 
@@ -359,7 +360,7 @@
             </div>
             
             <!-- Checkbox "Sans données antérieures" pour NOUVEAU_TITRE -->
-            <c:if test="${param.type == 'NOUVEAU_TITRE'}">
+            <c:if test="${typeDemandeSprint2 eq 'NOUVEAU_TITRE' or param.type eq 'NOUVEAU_TITRE' or demandeDTO.idTypeDemande == 1}">
                 <div class="checkbox-row">
                     <input type="checkbox" id="sansdonneesAnterieures" name="sansdonneesAnterieures" value="true" 
                            <c:if test="${demandeDTO.sansdonneesAnterieures}">checked</c:if>>

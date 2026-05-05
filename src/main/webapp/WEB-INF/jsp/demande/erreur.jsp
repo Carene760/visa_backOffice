@@ -19,7 +19,7 @@
             </c:if>
             
             <div style="margin-top: 20px;">
-                <a href="/demande/nouveau" style="display: inline-block; background: #3498db; color: white; padding: 10px 20px; border-radius: 3px; text-decoration: none; margin-right: 10px;">Nouvelle Demande</a>
+                <a href="/demande/nouveau?type=NOUVEAU_TITRE" style="display: inline-block; background: #3498db; color: white; padding: 10px 20px; border-radius: 3px; text-decoration: none; margin-right: 10px;">Nouvelle Demande</a>
                 <a href="/" style="display: inline-block; background: #95a5a6; color: white; padding: 10px 20px; border-radius: 3px; text-decoration: none;">Accueil</a>
             </div>
         </div>

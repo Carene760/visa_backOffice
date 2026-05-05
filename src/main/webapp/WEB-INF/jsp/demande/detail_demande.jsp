@@ -632,7 +632,7 @@
                 <a href="/demande/${demande.id}/modifier" class="btn">Modifier Dossier</a>
             </c:if>
             <a href="/demande/${demande.id}/generer-recepisse" class="btn" download="recepisse_${demande.id}.pdf">Télécharger Récépissé PDF</a>
-            <a href="/demande/nouveau" class="btn secondary">Nouvelle Demande</a>
+            <a href="/demande/nouveau?type=NOUVEAU_TITRE" class="btn secondary">Nouvelle Demande</a>
         </div>
     </div>
 

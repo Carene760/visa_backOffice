@@ -81,6 +81,116 @@
         margin-top: 20px;
     }
 
+    .duplicata-panel {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-top: 18px;
+    }
+
+    .duplicata-card {
+        border: 1px solid #d7d7d7;
+        border-radius: 4px;
+        padding: 18px;
+        background: #fcfcfc;
+    }
+
+    .duplicata-card h4 {
+        margin-top: 0;
+        margin-bottom: 12px;
+        color: var(--text-main);
+        border-left: 4px solid var(--accent-blue);
+        padding-left: 10px;
+    }
+
+    .duplicata-form {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .duplicata-form .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .duplicata-form label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    .duplicata-form input,
+    .duplicata-form select,
+    .duplicata-form textarea {
+        padding: 10px 12px;
+        border: 1px solid #8f8f8f;
+        border-radius: 2px;
+        font-size: 14px;
+        font-family: inherit;
+        background: #fff;
+    }
+
+    .duplicata-form input:focus,
+    .duplicata-form select:focus,
+    .duplicata-form textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+        background-color: #fcfdff;
+    }
+
+    .duplicata-form .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .duplicata-form .form-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .duplicata-form .btn-submit {
+        padding: 12px 24px;
+        background: var(--accent-blue);
+        color: white;
+        border: none;
+        border-radius: 2px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.2s;
+        flex-shrink: 0;
+    }
+
+    .duplicata-form .btn-submit:hover {
+        background: #2980b9;
+    }
+
+    .duplicata-form .btn-reset {
+        padding: 12px 24px;
+        background: #95a5a6;
+        color: white;
+        border: none;
+        border-radius: 2px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .duplicata-form .btn-reset:hover {
+        background: #7f8c8d;
+    }
+
     .results-title {
         font-size: 18px;
         font-weight: 700;
@@ -284,6 +394,14 @@
         .form-section-grid {
             grid-template-columns: 1fr;
         }
+
+        .duplicata-panel {
+            grid-template-columns: 1fr;
+        }
+
+        .duplicata-form .form-row {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
@@ -294,34 +412,9 @@
         <div class="preselect-info">
             <h3>Demande Pré-sélectionnée</h3>
             <p>${message}</p>
-            <c:if test="${not empty demandePreselect}">
-                <hr style="margin: 12px 0; border: none; border-top: 1px solid #b3d9c8;">
-                <table class="preselect-table" style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                    <tr style="border-bottom: 1px solid #d4edda;">
-                        <td style="padding: 8px; font-weight: 600; width: 30%; background: #f0f8f5;">Numéro Demande:</td>
-                        <td style="padding: 8px;">#${demandePreselect.id}</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #d4edda;">
-                        <td style="padding: 8px; font-weight: 600; background: #f0f8f5;">Demandeur:</td>
-                        <td style="padding: 8px;">${demandePreselect.demandeur.nom} ${demandePreselect.demandeur.prenom}</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #d4edda;">
-                        <td style="padding: 8px; font-weight: 600; background: #f0f8f5;">Passeport:</td>
-                        <td style="padding: 8px;">${demandePreselect.passeport.numero}</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #d4edda;">
-                        <td style="padding: 8px; font-weight: 600; background: #f0f8f5;">Statut:</td>
-                        <td style="padding: 8px;">${demandePreselect.statut.libelle}</td>
-                    </tr>
-                </table>
-                <p style="margin-top: 12px; font-size: 13px; color: #155724;">
-                    ✓ Cliquez le bouton <strong>Confirmer Duplicata</strong> ci-dessous pour finaliser.
-                </p>
-                <form method="post" action="/demande/duplicata/select" style="margin-top: 12px;">
-                    <input type="hidden" name="demandeId" value="${demandePreselect.id}">
-                    <button type="submit" class="btn-select" style="padding: 10px 24px; font-size: 15px;">✓ Confirmer Duplicata</button>
-                </form>
-            </c:if>
+            <p style="margin-bottom: 0; font-size: 13px; color: #155724;">
+                Le système peut créer plusieurs duplicata pour une même demande. Chaque duplicata reçoit une référence unique avec suffixe horodaté.
+            </p>
         </div>
     </c:if>
 
@@ -350,130 +443,224 @@
     </form>
 </div>
 
-<!-- Section Résultats (affichée si recherche effectuée) -->
-<c:if test="${not empty searchResults}">
+<!-- Section Résultats / Formulaire -->
+<c:if test="${not empty demandePreselect}">
+    <c:set var="visaEffectif" value="${not empty visaSource ? visaSource : demandePreselect.visa}" />
+    <div class="results-section">
+        <h3 class="results-title">Formulaire de Duplicata</h3>
+        <p style="margin-top: 0; color: var(--text-soft);">La demande sélectionnée remplace la liste. Le duplicata est borné par la période du visa associé: date d'émission entre l'émission et l'expiration du visa, et date d'expiration identique au visa.</p>
+
+        <div class="duplicata-panel">
+            <div class="duplicata-card">
+                <h4>Demande et carte source</h4>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <tr style="border-bottom: 1px solid #e5e5e5;">
+                        <td style="padding: 8px 0; font-weight: 600; width: 40%;">Numéro demande</td>
+                        <td style="padding: 8px 0;">#${demandePreselect.id}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e5e5e5;">
+                        <td style="padding: 8px 0; font-weight: 600;">Demandeur</td>
+                        <td style="padding: 8px 0;">${demandePreselect.demandeur.nom} ${demandePreselect.demandeur.prenom}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e5e5e5;">
+                        <td style="padding: 8px 0; font-weight: 600;">Passeport</td>
+                        <td style="padding: 8px 0;">
+                            <c:choose>
+                                <c:when test="${not empty demandePreselect.passeport}">${demandePreselect.passeport.numero}</c:when>
+                                <c:otherwise>N/A</c:otherwise>
+                            </c:choose>
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e5e5e5;">
+                        <td style="padding: 8px 0; font-weight: 600;">Visa associé</td>
+                        <td style="padding: 8px 0;">
+                            <c:choose>
+                                <c:when test="${not empty visaEffectif}">
+                                    ${visaEffectif.reference}
+                                    <c:if test="${not empty visaEffectif.dateExpiration}">
+                                        <span style="color: var(--text-soft);">(expire le ${visaEffectif.dateExpiration})</span>
+                                    </c:if>
+                                </c:when>
+                                <c:otherwise>N/A</c:otherwise>
+                            </c:choose>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: 600;">Statut</td>
+                        <td style="padding: 8px 0;">
+                            <c:choose>
+                                <c:when test="${not empty demandePreselect.statut}">${demandePreselect.statut.libelle}</c:when>
+                                <c:otherwise>N/A</c:otherwise>
+                            </c:choose>
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e5e5e5;">
+                        <td style="padding: 8px 0; font-weight: 600;">Ancienne Carte Résident</td>
+                        <td style="padding: 8px 0;">${referenceCarteAncienne}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="duplicata-card">
+                <h4>Créer le duplicata</h4>
+                <form method="post" action="/demande/duplicata/creerDuplicataCarteResident" class="duplicata-form">
+                    <input type="hidden" name="demandeId" value="${demandePreselect.id}">
+                    <c:if test="${not empty carteResident}">
+                        <input type="hidden" name="carteResidentSourceId" value="${carteResident.id}">
+                    </c:if>
+
+                    <div class="form-group">
+                        <label for="cr_reference">Référence du duplicata</label>
+                        <input type="text" id="cr_reference" name="referenceDuplicata" value="${referenceDuplicataProposee}" placeholder="Laisser vide pour auto-générer">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cr_dateEntree">Date d'Entrée</label>
+                            <c:choose>
+                                <c:when test="${not empty carteResident}">
+                                    <input type="date" id="cr_dateEntree" name="dateEntree" value="${carteResident.dateEntree}" required>
+                                </c:when>
+                                <c:otherwise>
+                                    <input type="date" id="cr_dateEntree" name="dateEntree" required>
+                                </c:otherwise>
+                            </c:choose>
+                        </div>
+                        <div class="form-group">
+                            <label for="cr_dateExpiration">Date d'Expiration</label>
+                            <input type="date" id="cr_dateExpiration" name="dateExpiration" value="${visaEffectif.dateExpiration}" readonly required style="background: #f0f0f0;">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cr_lieuEntree">Lieu d'Entrée</label>
+                            <c:choose>
+                                <c:when test="${not empty carteResident}">
+                                    <input type="text" id="cr_lieuEntree" name="lieuEntree" value="${carteResident.lieuEntree}">
+                                </c:when>
+                                <c:otherwise>
+                                    <input type="text" id="cr_lieuEntree" name="lieuEntree">
+                                </c:otherwise>
+                            </c:choose>
+                        </div>
+                        <div class="form-group">
+                            <label for="cr_dateEmission">Date d'Émission *</label>
+                            <c:choose>
+                                <c:when test="${not empty dateEmissionCarteAncienne}">
+                                    <input type="date" id="cr_dateEmission" name="dateEmission" value="${dateEmissionCarteAncienne}" required
+                                           min="${visaDateEmission}"
+                                           max="${visaDateExpiration}"
+                                           style="color: #333;">
+                                </c:when>
+                                <c:otherwise>
+                                    <input type="date" id="cr_dateEmission" name="dateEmission" value="${visaDateEmission}" required
+                                           min="${visaDateEmission}"
+                                           max="${visaDateExpiration}"
+                                           style="color: #999;">
+                                </c:otherwise>
+                            </c:choose>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-submit">✓ Confirmer Duplicata</button>
+                        <a href="/demande/duplicata" class="btn-reset">↻ Réinitialiser</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <c:if test="${not empty duplicatasExistants}">
+            <div style="margin-top: 20px; padding: 16px; border: 1px solid #b3d9ff; background: #eef7ff; border-radius: 4px;">
+                <h4 style="margin-top: 0; margin-bottom: 12px; color: var(--text-main);">Duplicata(s) déjà créés pour cette demande</h4>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px; background: white;">
+                    <thead style="background: var(--accent-dark); color: white;">
+                        <tr>
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Référence</th>
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Visa</th>
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Date émission</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <c:forEach var="duplicata" items="${duplicatasExistants}">
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid #e0e0e0;">${duplicata.reference}</td>
+                                <td style="padding: 10px; border: 1px solid #e0e0e0;">
+                                    <c:choose>
+                                        <c:when test="${not empty duplicata.visa}">${duplicata.visa.reference}</c:when>
+                                        <c:otherwise>N/A</c:otherwise>
+                                    </c:choose>
+                                </td>
+                                <td style="padding: 10px; border: 1px solid #e0e0e0;">
+                                    <c:choose>
+                                        <c:when test="${not empty duplicata.dateEmission}">${duplicata.dateEmission}</c:when>
+                                        <c:otherwise>N/A</c:otherwise>
+                                    </c:choose>
+                                </td>
+                            </tr>
+                        </c:forEach>
+                    </tbody>
+                </table>
+            </div>
+        </c:if>
+    </div>
+</c:if>
+
+<c:if test="${empty demandePreselect and not empty searchResults}">
     <div class="results-section">
         <h3 class="results-title">Résultats de Recherche</h3>
-        
-        <c:if test="${empty searchResults}">
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Numéro Demande</th>
+                    <th>Demandeur</th>
+                    <th>Passeport</th>
+                    <th>Date Expiration</th>
+                    <th>Statut</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <c:forEach var="demande" items="${searchResults}">
+                    <tr>
+                        <td>#${demande.id}</td>
+                        <td>${demande.demandeur.nom} ${demande.demandeur.prenom}</td>
+                        <td>
+                            <c:choose>
+                                <c:when test="${not empty demande.passeport}">${demande.passeport.numero}</c:when>
+                                <c:otherwise>N/A</c:otherwise>
+                            </c:choose>
+                        </td>
+                        <td>
+                            <c:choose>
+                                <c:when test="${not empty demande.passeport and not empty demande.passeport.dateExpiration}">${demande.passeport.dateExpiration}</c:when>
+                                <c:otherwise>N/A</c:otherwise>
+                            </c:choose>
+                        </td>
+                        <td>
+                            <c:choose>
+                                <c:when test="${not empty demande.statut}">${demande.statut.libelle}</c:when>
+                                <c:otherwise>N/A</c:otherwise>
+                            </c:choose>
+                        </td>
+                        <td>
+                            <a href="/demande/duplicata?demandeId=${demande.id}" class="btn-select" style="text-decoration: none; display: inline-block;">Sélectionner</a>
+                        </td>
+                    </tr>
+                </c:forEach>
+            </tbody>
+        </table>
+    </div>
+</c:if>
+
+<c:if test="${empty demandePreselect and empty searchResults}">
+    <c:if test="${not empty criterion and not empty searchValue}">
+        <div class="results-section">
             <div class="no-results">
                 Aucune demande ne correspond à vos critères. Veuillez vérifier et réessayer.
             </div>
-        </c:if>
-
-        <c:if test="${not empty searchResults}">
-            <table class="results-table">
-                <thead>
-                    <tr>
-                        <th>Numéro Demande</th>
-                        <th>Demandeur</th>
-                        <th>Passeport</th>
-                        <th>Date Expiration</th>
-                        <th>Statut</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <c:forEach var="demande" items="${searchResults}">
-                        <tr>
-                            <td>#${demande.id}</td>
-                            <td>${demande.demandeur.nom} ${demande.demandeur.prenom}</td>
-                                <td>
-                                    <c:if test="${not empty demande.passeport}">
-                                        ${demande.passeport.numero}
-                                    </c:if>
-                                    <c:if test="${empty demande.passeport}">
-                                        N/A
-                                    </c:if>
-                                </td>
-                            <td>
-                                    <c:if test="${not empty demande.passeport and not empty demande.passeport.dateExpiration}">
-                                    ${demande.passeport.dateExpiration}
-                                    </c:if>
-                                    <c:if test="${empty demande.passeport or empty demande.passeport.dateExpiration}">
-                                    N/A
-                                </c:if>
-                            </td>
-                                <td>
-                                    <c:if test="${not empty demande.statut}">
-                                        ${demande.statut.libelle}
-                                    </c:if>
-                                </td>
-                            <td>
-                                <a href="/demande/duplicata?demandeId=${demande.id}" class="btn-select" style="text-decoration: none; display: inline-block;">Sélectionner</a>
-                            </td>
-                        </tr>
-                    </c:forEach>
-                </tbody>
-            </table>
-        </c:if>
-    </div>
-</c:if>
-
-<!-- Formulaire Création Duplicata CarteResident -->
-<c:if test="${not empty carteResident}">
-    <div class="duplicata-form-section">
-        <h3 class="duplicata-form-title">Créer un Duplicata - Carte Résident</h3>
-        
-        <div class="form-info">
-            ℹ️ Les données ci-dessous proviennent de la carte résident existante. Modifiez si nécessaire avant de créer le duplicata (en cas de perte).
         </div>
-
-        <form method="post" action="/demande/duplicata/creerDuplicataCarteResident">
-            <input type="hidden" name="demandeId" value="${carteResident.demande.id}">
-            <input type="hidden" name="carteResidentSourceId" value="${carteResident.id}">
-
-            <div class="form-section-grid">
-                <div class="form-group">
-                    <label for="cr_reference">Référence Carte Résident (Original)</label>
-                    <input type="text" id="cr_reference" name="referenceSource" value="${carteResident.reference}" readonly style="background: #f0f0f0;">
-                </div>
-
-                <div class="form-group">
-                    <label for="cr_dateEntree">Date d'Entrée</label>
-                    <input type="date" id="cr_dateEntree" name="dateEntree" 
-                           value="<fmt:formatDate value='${carteResident.dateEntree}' pattern='yyyy-MM-dd'/>" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="cr_lieuEntree">Lieu d'Entrée</label>
-                    <input type="text" id="cr_lieuEntree" name="lieuEntree" value="${carteResident.lieuEntree}">
-                </div>
-
-                <div class="form-group">
-                    <label for="cr_dateExpiration">Date d'Expiration</label>
-                    <input type="date" id="cr_dateExpiration" name="dateExpiration" 
-                           value="<fmt:formatDate value='${carteResident.dateExpiration}' pattern='yyyy-MM-dd'/>" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="cr_dateEmission">Date d'Émission</label>
-                    <input type="date" id="cr_dateEmission" name="dateEmission" 
-                           value="<fmt:formatDate value='${carteResident.dateEmission}' pattern='yyyy-MM-dd'/>" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="cr_motif">Motif du Duplicata *</label>
-                    <select id="cr_motif" name="motif" required>
-                        <option value="">-- Sélectionner un motif --</option>
-                        <option value="perte">Carte perdue</option>
-                        <option value="vol">Carte volée</option>
-                        <option value="usure">Usure</option>
-                        <option value="deterioration">Détérioration</option>
-                        <option value="autre">Autre</option>
-                    </select>
-                </div>
-
-                <div class="form-group" style="grid-column: 1 / -1;">
-                    <label for="cr_remarques">Remarques / Observations</label>
-                    <textarea id="cr_remarques" name="remarques" placeholder="Détails supplémentaires (optionnel)"></textarea>
-                </div>
-            </div>
-
-            <div class="form-actions">
-                <button type="submit" class="btn-submit">✓ Créer le Duplicata</button>
-                <button type="reset" class="btn-reset">↻ Réinitialiser</button>
-            </div>
-        </form>
-    </div>
+    </c:if>
 </c:if>
+

@@ -177,7 +177,7 @@
                 <a href="/demande/${demandeId}/generer-recepisse" class="btn-primary" download="recepisse_${demandeId}.pdf">
                     Télécharger Récépissé
                 </a>
-                <a href="/demande/nouveau" class="btn-secondary">Nouvelle Demande</a>
+                <a href="/demande/nouveau?type=NOUVEAU_TITRE" class="btn-secondary">Nouvelle Demande</a>
                 <a href="/" class="btn-secondary">Accueil</a>
             </div>
         </div>
