@@ -1,0 +1,38 @@
+Pour la sprint5 la concept comme celle-ci:
+    On ne touche pas l'application vue JS , seulement le spring-boot
+    Pour le formulaire du demande, ce ne sera pas juste Dossier_Cree puis scanTermine
+    Il y aura Photo/Signature termine , meme si c'est sans_donnee_anterieur upload termine ou il choisit encore d'uploader , 
+    meme avec_donnee_anterieure, quand on fait une demande on devrait toujours passer par prendre le photo par webcam et faire la signature par souris
+    avant scan termine 
+    si c'est sans_donnee_anterieur upload_termine , le dossier sera Cree , puis il va passer par la formulaire de photo et signature 
+        il peut ne pas le faire tout de suite mais son statut sera Dossier_Cree et il peut modifier a tout moment , les photos/ signature enregistre, photo/signature termine -> scan termine
+
+    si c'est avec_donnee_anterieure ou sans_donnee_anterieur et choisi d'uploader , il remplie le formulaire -> Dossier_Cree, il va passer par le formulaire de photo/signature -> photo/signature termine, upload les fichiers -> scan termine 
+        il peut ne pas le faire tout de suite mais son statut sera Dossier_Cree et il peut modifier a tout moment, lors de modification , il peut meme avoir le choix de quel formulaire il veut entrer formulaire de photo/signature ou upload les fichiers 
+
+    , dans le menu_bar , ajoute Fiche_demande , Carte_Resident 
+    dans la page Fiche_demande, il y aura un barre de recherche d'id de la demande , apres avoir trouve la demande , tout ce qui concerne la demande s'affiche
+    le demandeur, avec photo/signature, ce sera une fiche , et on peut l'exporter pdf 
+
+    dans la page Carte_Resident, il y aura un barre de recherche d'id de la Carte_Resident , apres avoir trouve la Carte_Resident , tout ce qui concerne cette Carte_Resident, la demande concerne s'affiche
+    le demandeur, avec photo/signature, ce sera une fiche , et on peut l'exporter pdf 
+
+
+
+atao ze possible maka sary @webcam 
+alaina sary le olona de asaina manao sonia asina oe fiche ,
+alohan'scan termine misy photo/signature termine 
+asaina maka sary de ty ny soniany , de rattache iny sary sy sonia (eo @chatpadd) an'iny ao amilay demande 
+de rehefa anao export pdf, ze export pdf ho atao surtout carte Resident de misy ny sarin'le olona mipetaka sy sonia anle olona mipetaka
+
+Integration de webcam dans l'application/ il y aura un espace ou on peux faire la signature 
+la photo de la personne et son signature sera rattache a la demande
+et quand on fait une fiche on peut voir la photo du demandeur, signature 
+fichen'le demande , tokony misy info anle demandeur (photo venant du webcam et la signature)
+l'etape : Dossier_Cree
+            Photo/signature termine (raha mbola tsy naka sary de tsy afaka mipasse scan termine )
+            Scan termine
+
+
+On devrait avoir un fiche de demande (mbola tsy alefa any @application hafa)
+
