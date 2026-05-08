@@ -6,8 +6,7 @@ import com.teamlead.Model.Passeport;
 import com.teamlead.Model.Demandeur;
 
 @Repository
-public interface PasseportRepository extends JpaRepository<Passeport, String> {
+public interface PasseportRepository extends JpaRepository<Passeport, Integer> {
      Passeport findByNumero(String numero);
      Passeport findFirstByDemandeurOrderByDateCreationDesc(Demandeur demandeur);
-
 }

@@ -178,6 +178,7 @@ public class DemandeController {
             @RequestParam(required = false) Integer id_type_visa,
             @RequestParam(required = false) String type_demande_sprint2,
             @RequestParam(required = false) String sansdonneesAnterieures,
+            @RequestParam(required = false) String mode_sans_donnees_anterieures,
             @RequestParam(required = false) String[] documents,
             Model model) {
         DemandeCreationDTO dto = new DemandeCreationDTO();
@@ -203,6 +204,7 @@ public class DemandeController {
             dto.setIdTypeMotif(type_motif);
             dto.setIdTypeVisa(id_type_visa);
             dto.setSansdonneesAnterieures("true".equals(sansdonneesAnterieures));
+            dto.setModeSansDonneesAnterieures(mode_sans_donnees_anterieures);
 
             if (documents != null && documents.length > 0) {
                 java.util.List<Integer> ids = new java.util.ArrayList<>();

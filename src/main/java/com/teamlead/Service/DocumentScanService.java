@@ -18,11 +18,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.teamlead.DTO.ValidationErrorDTO;
 import com.teamlead.Exception.ValidationException;
+import com.teamlead.Model.Decision;
+import com.teamlead.Model.DecisionDocument;
 import com.teamlead.Model.Demande;
 import com.teamlead.Model.DocumentScan;
 import com.teamlead.Model.PieceAFournir;
+import com.teamlead.Repository.DecisionDocumentRepository;
 import com.teamlead.Repository.DocumentScanRepository;
 import com.teamlead.Repository.PieceAFournirRepository;
+import com.teamlead.Repository.DecisionRepository;
 
 @Service
 public class DocumentScanService {
@@ -32,6 +36,18 @@ public class DocumentScanService {
 
     @Autowired
     private PieceAFournirRepository pieceAFournirRepository;
+
+    @Autowired
+    private DecisionRepository decisionRepository;
+
+    @Autowired
+    private DecisionDocumentRepository decisionDocumentRepository;
+
+    @Autowired
+    private DemandeStatusService demandeStatusService;
+
+    @Autowired
+    private DocumentScanValidationService documentScanValidationService;
 
     @Value("${upload.dir}")
     private String uploadDir;
@@ -144,6 +160,8 @@ public class DocumentScanService {
             piece.setDateModification(LocalDateTime.now());
             pieceAFournirRepository.save(piece);
 
+            finaliserSiDossierCompletEtEnModeUpload(demande);
+
             ValidationErrorDTO result = new ValidationErrorDTO(true, "Fichier uploadé avec succès");
             result.setDocumentScanId(scan.getId());
             return result;
@@ -221,5 +239,40 @@ public class DocumentScanService {
      */
     public Integer compterScansPourPiece(Integer idPiece) {
         return documentScanRepository.countByIdPieceAFournir(idPiece);
+    }
+
+    /**
+     * Finalise automatiquement le dossier après upload pour les demandes sans données antérieures en mode "uploader".
+     */
+    private void finaliserSiDossierCompletEtEnModeUpload(Demande demande) {
+        if (demande == null || !Boolean.TRUE.equals(demande.getSansDonneesAnterieures())) {
+            return;
+        }
+        if (!"uploader".equalsIgnoreCase(demande.getModeSansDonneesAnterieures())) {
+            return;
+        }
+        if (demande.getStatutDemande() != null && "SCAN_TERMINE".equalsIgnoreCase(demande.getStatutDemande().getLibelle())) {
+            return;
+        }
+
+        String validation = documentScanValidationService.validerAvantTransitionScanTermine(demande.getId());
+        if (validation != null && !validation.isBlank()) {
+            return;
+        }
+
+        ValidationErrorDTO transition = demandeStatusService.transitionnerVersScanTermine(demande.getId());
+        if (transition != null && transition.isSuccess()) {
+            DecisionDocument decision = new DecisionDocument();
+                                 Decision decisionEntity = decisionRepository.findByLibelle("Approuvee")
+                                .orElseThrow(() -> new ValidationException("Erreur système", List.of("Valeur 'Approuve' introuvable dans la table decision")));
+
+            decision.setDemande(demande);
+            decision.setTypeDecision("MANUAL_REVIEW");
+            decision.setDecision(decisionEntity);
+            decision.setCriteresAppliques("Dossier complet après upload pour une demande sans données antérieures.");
+            decision.setDecisionAutomatique(true);
+            decision.setDateDecision(LocalDateTime.now());
+            decisionDocumentRepository.save(decision);
+        }
     }
 }

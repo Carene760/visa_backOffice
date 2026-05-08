@@ -8,15 +8,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.teamlead.Model.Decision;
 import com.teamlead.Model.DecisionDocument;
 import com.teamlead.Model.Demande;
 import com.teamlead.Repository.DecisionDocumentRepository;
+import com.teamlead.Repository.DecisionRepository;
 
 @Service
 public class DecisionDocumentService {
 
     @Autowired
     private DecisionDocumentRepository repository;
+
+    @Autowired
+    private DecisionRepository decisionRepository;
 
     /**
      * Enregistre une décision pour une demande
@@ -53,6 +58,7 @@ public class DecisionDocumentService {
         decision.setTypeDecision("REJETEE");
         decision.setRaisonRejet(raison);
         decision.setDateDecision(LocalDateTime.now());
+        decision.setDecision(decisionRepository.findByLibelle("Refusee").orElse(null));
         decision.setDecisionAutomatique(false);
         return repository.save(decision);
     }

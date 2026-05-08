@@ -39,6 +39,10 @@ import com.teamlead.Repository.TypeDocumentRepository;
 import com.teamlead.Repository.TypeMotifRepository;
 import com.teamlead.Repository.TypeVisaRepository;
 import com.teamlead.Repository.VisaRepository;
+import com.teamlead.Repository.DecisionRepository;
+import com.teamlead.Repository.DecisionDocumentRepository;
+import com.teamlead.Model.DecisionDocument;
+import com.teamlead.Model.Decision;
 
                     @Service
                     public class DemandeService{
@@ -58,7 +62,9 @@ import com.teamlead.Repository.VisaRepository;
                     @Autowired private MotifTransfertRepository motifTransfertRepository;
                     @Autowired private DemandeValidationService demandeValidationService;
                     @Autowired private DemandeStatusService demandeStatusService;
-                    @Autowired private DecisionDocumentService decisionDocumentService;
+                    @Autowired private QRCodeService qrCodeService;
+                    @Autowired private DecisionRepository decisionRepository;
+                    @Autowired private DecisionDocumentRepository decisionDocumentRepository;
                     
                     @Value("${renouvellement.delta.jours:0}")
                     private int deltaDaysConfig;
@@ -76,6 +82,9 @@ import com.teamlead.Repository.VisaRepository;
                     if(!demandeDTO.getDateExpirationVisa().isAfter(demandeDTO.getDateEntreeVisa()))return failure("Erreur: Dates du visa incohérentes","La date d'expiration du visa doit être strictement postérieure à la date d'entrée.");
 
                     boolean sansDonneesAnterieures = Boolean.TRUE.equals(demandeDTO.getSansdonneesAnterieures());
+                    String modeSansDonnees = demandeDTO.getModeSansDonneesAnterieures();
+                    boolean modeUploader = "uploader".equalsIgnoreCase(modeSansDonnees);
+                    boolean modeUploadTermine = !modeUploader;
                     if(!sansDonneesAnterieures){
                         LocalDate expirationMaximale = demandeDTO.getDateEntreeVisa().plusDays(30);
                         if(demandeDTO.getDateExpirationVisa().isAfter(expirationMaximale)){
@@ -159,7 +168,11 @@ import com.teamlead.Repository.VisaRepository;
                     demande.setTypeDemande(typeDemande);
                     demande.setSansDonneesAnterieures(Boolean.TRUE.equals(sansDonneesAnterieures));
                     demande.setAvecDonneesAnterieures(!Boolean.TRUE.equals(sansDonneesAnterieures));
+                    demande.setModeSansDonneesAnterieures(sansDonneesAnterieures ? (modeUploader ? "uploader" : "upload_termine") : null);
                     demande=demandeRepository.save(demande);
+
+                    // Générer le QR code automatiquement
+                    qrCodeService.generateQRCode(demande.getId());
 
                     demandeStatusService.initializeDemandeStatus(demande);
 
@@ -203,21 +216,26 @@ import com.teamlead.Repository.VisaRepository;
                     piece.setDemande(demande);
                     piece.setTypeDocument(typeDocumentRepository.findById(id).orElseThrow(()->new ValidationException("Erreur doc",List.of("Doc inexistant "+id))));
                     piece.setPresent(Boolean.TRUE);
-                    piece.setValide(Boolean.TRUE.equals(sansDonneesAnterieures));
-                    piece.setScanComplete(Boolean.TRUE.equals(sansDonneesAnterieures));
-                    piece.setDateScanComplete(Boolean.TRUE.equals(sansDonneesAnterieures) ? LocalDateTime.now() : null);
+                    piece.setValide(modeUploadTermine);
+                    piece.setScanComplete(modeUploadTermine);
+                    piece.setDateScanComplete(modeUploadTermine ? LocalDateTime.now() : null);
                     piece.setDateDepot(LocalDateTime.now());
                     piece.setDateModification(LocalDateTime.now());
                     pieceAFournirRepository.save(piece);
                     }}
 
-                    if (Boolean.TRUE.equals(sansDonneesAnterieures)) {
-                        decisionDocumentService.enregistrerDecision(
-                            demande,
-                            "MANUAL_REVIEW",
-                            "Demande sans donnees antérieures: pièces auto-marquees, dossier prêt pour traitement.",
-                            true
-                        );
+                    if (Boolean.TRUE.equals(sansDonneesAnterieures) && modeUploadTermine) {
+                        Decision decisionEntity = decisionRepository.findByLibelle("Approuvee")
+                                .orElseThrow(() -> new ValidationException("Erreur système", List.of("Valeur 'Approuve' introuvable dans la table decision")));
+
+                        DecisionDocument dd = new DecisionDocument();
+                        dd.setDemande(demande);
+                        dd.setTypeDecision("MANUAL_REVIEW");
+                        dd.setCriteresAppliques("Demande sans donnees antérieures: pièces auto-marquees, dossier prêt pour traitement.");
+                        dd.setDecisionAutomatique(true);
+                        dd.setDecision(decisionEntity);
+                        dd.setDateDecision(LocalDateTime.now());
+                        decisionDocumentRepository.save(dd);
 
                         ValidationErrorDTO transition = demandeStatusService.transitionnerVersScanTermine(demande.getId());
                         if (!transition.isSuccess()) {
