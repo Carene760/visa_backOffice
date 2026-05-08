@@ -144,3 +144,4 @@ public class DocumentScanValidationService {
             scannedObligatoires, totalObligatoires, scannedOptionnels, totalOptionnels);
     }
 }
+

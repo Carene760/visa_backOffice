@@ -55,5 +55,27 @@ public class Demande {
 
     @Column(name = "date_modification")
     private LocalDateTime dateModification;
+
+    // Sprint 4 - QR Code
+    @Column(name = "qr_code_data", columnDefinition = "TEXT")
+    private String qrCodeData;
+
+    @Column(name = "qr_code_url")
+    private String qrCodeUrl;
+
+    @Column(name = "qr_code_generated")
+    private Boolean qrCodeGenerated = Boolean.FALSE;
+
+    @Column(name = "date_generation_qr_code")
+    private LocalDateTime dateGenerationQrCode;
+
+    @Column(name = "tracking_token")
+    private String trackingToken;
+
+    @Column(name = "mode_sans_donnees_anterieures", length = 30)
+    private String modeSansDonneesAnterieures;
+
+    @Column(name = "type_decision")
+    private Integer typeDecision;
 }
  

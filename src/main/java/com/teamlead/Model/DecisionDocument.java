@@ -1,13 +1,8 @@
 package com.teamlead.Model;
 
 import java.time.LocalDateTime;
-
-
 import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
@@ -33,16 +28,19 @@ public class DecisionDocument {
     @JoinColumn(name = "id_demande", foreignKey = @ForeignKey(name = "decision_document_id_demande_fkey"))
     private Demande demande;
 
-    @Column(name = "type_decision", length = 100)
-    private String typeDecision;
-
     @Column(name = "criteres_appliques", length = 4000)
     private String criteresAppliques;
 
     @Column(name = "decision_automatique")
     private Boolean decisionAutomatique = Boolean.FALSE;
 
+    @Column(name = "type_decision")
+    private String typeDecision;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "decision", foreignKey = @ForeignKey(name = "fk_decision"))
+    private Decision decision;
+    
     @Column(name = "date_decision")
     private LocalDateTime dateDecision;
 

@@ -34,6 +34,7 @@ INSERT INTO type_document (libelle, id_type_motif, obligatoire) VALUES
 insert into situation_matrimoniale (libelle) values ('CELIBATAIRE'), ('MARIE(E)'), ('DIVORCE(E)'), ('VEUF(VEUVE)');
 
 insert into nationalite (libelle) values ('FRANCAIS(E)'), ('ANGLOPHONE'), ('CHINOIS(E)'), ('INDIEN(NE)'), ('AUTRE');
+insert into nationalite (libelle) values ('JAPONAIS(E)');
 
 insert into type_visa(libelle) values ('TRANSFORMABLE');
 insert into type_visa(libelle) values ('VALIDE');

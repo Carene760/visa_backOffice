@@ -50,4 +50,5 @@ public class DemandeCreationDTO {
     private Integer idDemandeSource;
     private Boolean avecDonneesAnterieures;
     private Boolean sansdonneesAnterieures; // Checkbox pour NOUVEAU_TITRE variante "sans données antérieures"
+    private String modeSansDonneesAnterieures; // upload_termine | uploader
 }

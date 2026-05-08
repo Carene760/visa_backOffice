@@ -541,8 +541,12 @@
         </div>
 
         <div class="form-actions">
-            <button type="submit" class="btn-submit">Soumettre la Demande</button>
-            <button type="reset" class="btn-reset">Réinitialiser</button>
+            <div id="mode-buttons" style="display: none; gap: 12px;">
+                <button type="submit" class="btn-submit" name="mode_sans_donnees_anterieures" value="upload_termine" id="btn-upload-termine">Upload terminé</button>
+                <button type="submit" class="btn-submit" name="mode_sans_donnees_anterieures" value="uploader" id="btn-uploader">Uploader</button>
+            </div>
+            <button type="submit" class="btn-submit" id="btn-default">Soumettre la Demande</button>
+            <button type="reset" class="btn-reset" id="btn-reset">Réinitialiser</button>
         </div>
     </form>
 </div>
@@ -676,6 +680,19 @@
         bindSelectAll();
         // Auto-select all documents when 'sans données antérieures' is checked
         const sansCheckbox = document.getElementById('sansdonneesAnterieures');
+        function toggleModeButtons() {
+            const modeContainer = document.getElementById('mode-buttons');
+            const defaultBtn = document.getElementById('btn-default');
+            if (!modeContainer || !defaultBtn) return;
+            if (sansCheckbox && sansCheckbox.checked) {
+                modeContainer.style.display = 'flex';
+                defaultBtn.style.display = 'none';
+            } else {
+                modeContainer.style.display = 'none';
+                defaultBtn.style.display = 'inline-block';
+            }
+        }
+
         if (sansCheckbox) {
             sansCheckbox.addEventListener('change', function () {
                 const selectAll = document.getElementById('selectAllDocuments');
@@ -692,10 +709,22 @@
                         specificContainer.querySelectorAll('input[name="documents"]').forEach(cb => { cb.checked = false; checkedDocuments.delete(cb.value); });
                     }
                 }
+                toggleModeButtons();
             });
             // apply initial state if checked on load
+            toggleModeButtons();
             if (sansCheckbox.checked) {
                 sansCheckbox.dispatchEvent(new Event('change'));
+            }
+            // Hide mode buttons when form reset happens
+            const theForm = document.querySelector('form');
+            if (theForm) {
+                theForm.addEventListener('reset', function () {
+                    // timeout to allow native reset to complete
+                    setTimeout(() => {
+                        toggleModeButtons();
+                    }, 0);
+                });
             }
         }
         if (modeTestEnabled) {
