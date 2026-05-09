@@ -27,11 +27,18 @@ Branche 1 : sprint5/1/workflow_dossier
 - `src/main/java/com/teamlead/Model/Demande.java`
 	-> Garder le statut courant de la demande et les flags `avecDonneesAnterieures` / `sansDonneesAnterieures`.
 - `src/main/java/com/teamlead/Model/Demandeur.java`
-	-> Prevoir la persistence de la photo webcam et de la signature souris.
+	-> Ajouter fields pour persister photo webcam et signature souris.
+	-> @Lob private byte[] photoWebcam (ou String cheminPhotoWebcam si filesystem).
+	-> @Lob private byte[] signatureSouris (ou String cheminSignature si filesystem).
+	-> private Boolean photoTerminee = false;
+	-> private Boolean signatureTerminee = false;
 - `src/main/java/com/teamlead/Service/DemandeService.java`
 	-> Laisser la demande en `DOSSIER_CREE` a la creation et ne pas sauter directement a `SCAN_TERMINE`.
+	-> Retourner l'ID demande apres creation pour redirection vers photo_signature_capture.
 - `src/main/java/com/teamlead/Service/DemandeStatusService.java`
 	-> Ajouter la transition vers `PHOTO_SIGNATURE_TERMINE` puis vers `SCAN_TERMINE`.
+	-> Ajouter reinitialiserPourModification(demandeId, etape) pour reprendre une etape specifique.
+	-> Si etape="photo-signature" -> set DOSSIER_CREE. Si etape="upload" -> set PHOTO_SIGNATURE_TERMINE.
 - `src/main/java/com/teamlead/Service/StatutTransitionService.java`
 	-> Bloquer `SCAN_TERMINE` tant que la photo/signature n'est pas terminee.
 - `src/main/java/com/teamlead/Model/HistoriqueStatutDemande.java`
@@ -68,9 +75,22 @@ Branche 3 : sprint5/1/carte_resident
 	-> Afficher la recherche et le detail de la carte resident avec la demande liee.
 
 DEV2 :
-Branche 1 : sprint5/2/photo_signature_upload
+Branche 1 : sprint5/2/photo_signature_capture_form
+- `src/main/webapp/WEB-INF/jsp/demande/photo_signature_capture.jsp` (NEW)
+	-> Formulaire webcam + signature dessinee a la souris.
+	-> Bouton "Prendre Photo" capture video stream vers canvas.
+	-> Bouton "Valider Signature" capture canvas drawing.
+	-> Bouton "Soumettre" envoie les 2 images en base64 via AJAX.
 - `src/main/java/com/teamlead/Controller/DemandeController.java`
-	-> Ajouter les endpoints pour enregistrer la photo webcam et la signature souris.
+	-> POST /demande/{id}/photo (photoBase64) -> enregistrerPhoto()
+	-> POST /demande/{id}/signature (signatureBase64) -> enregistrerSignature()
+- `src/main/java/com/teamlead/Service/PhotoSignatureService.java` (NEW)
+	-> enregistrerPhotoWebcam(demandeId, photoBase64) - decode et persiste photo.
+	-> enregistrerSignatureSouris(demandeId, signatureBase64) - decode et persiste signature.
+	-> Si BOTH termines, declenche transition vers PHOTO_SIGNATURE_TERMINE.
+	-> Retourner URL de redirection vers formulaire d'upload Scanner: /demande/{id}/upload-scanner.
+
+Branche 2 : sprint5/2/photo_signature_uploadAVEC_menu_et_pages_backoffice
 - `src/main/java/com/teamlead/Service/DocumentScanService.java`
 	-> Continuer l'upload des fichiers mais bloquer la finalisation si la photo/signature n'est pas faite.
 - `src/main/java/com/teamlead/Service/DocumentScanValidationService.java`
@@ -79,12 +99,15 @@ Branche 1 : sprint5/2/photo_signature_upload
 	-> Conserver la gestion des documents uploades comme etape separee.
 - `src/main/java/com/teamlead/Repository/DocumentScanRepository.java`
 	-> Verifier les methodes de recherche et de comptage utiles au workflow.
-
-Branche 2 : sprint5/2/menu_et_pages_backoffice
 - `src/main/webapp/WEB-INF/jsp/layout.jsp`
 	-> Ajouter les menus `Fiche_demande` et `Carte_Resident` dans la sidebar.
 - `src/main/java/com/teamlead/Controller/DemandeController.java`
 	-> Brancher les routes de recherche vers les bonnes JSP.
+	-> GET /demande/{id}/modifier -> affiche page de choix pour reprendre une etape.
+- `src/main/webapp/WEB-INF/jsp/demande/modifier_dossier.jsp` (NEW)
+	-> Afficher le statut actuel du dossier et 2 boutons:
+	   * "Reprendre Photo/Signature" -> redirige vers /demande/{id}/photo-signature-capture
+	   * "Aller a Upload Fichiers" -> redirige vers /demande/{id}/upload-scanner
 - `src/main/webapp/WEB-INF/jsp/demande/fiche_demande.jsp`
 	-> Afficher la fiche demande avec photo, signature, statut et export PDF.
 - `src/main/webapp/WEB-INF/jsp/carte_resident/fiche_carte_resident.jsp`

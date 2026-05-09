@@ -17,18 +17,7 @@ Pour la sprint5 la concept comme celle-ci:
     dans la page Carte_Resident, il y aura un barre de recherche d'id de la Carte_Resident , apres avoir trouve la Carte_Resident , tout ce qui concerne cette Carte_Resident, la demande concerne s'affiche
     le demandeur, avec photo/signature, ce sera une fiche , et on peut l'exporter pdf 
 
-
-    SPRINT3 - Assignation d une reservation a un vehicule 
-
-ROLE : 
-Team Lead - ETU 3371
-DEV 1 - ETU 3265
-DEV 2 - ETU 3273
-// Mba fenoina azafady
-// Raha toa ka misy zavatra nataonareo tsy mifanaraka amin ilay to do fa mety, de teneno fotsiny aho hanamboarako azy 
-// Ataovy tsara ny sprint 3 antsika
-
-Tout sur BackOffice 
+ 
 
 
 
