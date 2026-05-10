@@ -3,6 +3,9 @@ package com.teamlead.Model;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -63,4 +66,18 @@ public class Demandeur {
 
     @Column(name = "date_modification")
     private LocalDateTime dateModification;
+
+    @JdbcTypeCode(SqlTypes.VARBINARY)
+    @Column(name = "photo_webcam", columnDefinition = "bytea")
+    private byte[] photoWebcam;
+
+    @JdbcTypeCode(SqlTypes.VARBINARY)
+    @Column(name = "signature_souris", columnDefinition = "bytea")
+    private byte[] signatureSouris;
+
+    @Column(name = "photo_terminee")
+    private Boolean photoTerminee = false;
+
+    @Column(name = "signature_terminee")
+    private Boolean signatureTerminee = false;
 }

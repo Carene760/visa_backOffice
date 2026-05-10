@@ -12,8 +12,8 @@ import com.teamlead.Exception.ValidationException;
 import com.teamlead.Model.Demande;
 import com.teamlead.Model.HistoriqueStatutDemande;
 import com.teamlead.Model.JournalActivite;
-import com.teamlead.Model.TypeEvenement;
 import com.teamlead.Model.StatutDemande;
+import com.teamlead.Model.TypeEvenement;
 import com.teamlead.Repository.DemandeRepository;
 import com.teamlead.Repository.HistoriqueStatutDemandeRepository;
 import com.teamlead.Repository.JournalActiviteRepository;
@@ -141,6 +141,69 @@ public class DemandeStatusService {
             result.setDemandeId(idDemande);
             return result;
 
+        } catch (ValidationException e) {
+            return new ValidationErrorDTO(false, e.getMessage());
+        } catch (Exception e) {
+            return new ValidationErrorDTO(false, "Erreur inattendue: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Transition d'une demande vers PHOTO_SIGNATURE_TERMINE
+     * Validation: photo + signature doivent être terminées
+     */
+    @Transactional
+    public ValidationErrorDTO transitionnerVersPhotoSignatureTermine(Integer idDemande) {
+        try {
+            if (idDemande == null) {
+                return new ValidationErrorDTO(false, "Identifiant de demande manquant");
+            }
+            Demande demande = demandeRepository.findById(idDemande)
+                    .orElseThrow(() -> new ValidationException("Demande non trouvée",
+                            List.of("La demande " + idDemande + " n'existe pas")));
+
+            if (demande.getDemandeur() == null) {
+                return new ValidationErrorDTO(false, "Demandeur introuvable pour cette demande");
+            }
+
+            boolean photoTerminee = Boolean.TRUE.equals(demande.getDemandeur().getPhotoTerminee());
+            boolean signatureTerminee = Boolean.TRUE.equals(demande.getDemandeur().getSignatureTerminee());
+            if (!photoTerminee || !signatureTerminee) {
+                return new ValidationErrorDTO(false,
+                        "Transition impossible: photo et signature doivent être terminées.");
+            }
+
+            StatutDemande statutActuel = demande.getStatutDemande();
+            if (statutActuel != null && "PHOTO_SIGNATURE_TERMINE".equalsIgnoreCase(statutActuel.getLibelle())) {
+                ValidationErrorDTO alreadyDone = new ValidationErrorDTO(true,
+                        "La demande est déjà au statut PHOTO_SIGNATURE_TERMINE");
+                alreadyDone.setDemandeId(idDemande);
+                return alreadyDone;
+            }
+
+            StatutDemande statutPhotoSignature = statutDemandeRepository.findByLibelle("PHOTO_SIGNATURE_TERMINE");
+            if (statutPhotoSignature == null) {
+                statutPhotoSignature = new StatutDemande();
+                statutPhotoSignature.setLibelle("PHOTO_SIGNATURE_TERMINE");
+                statutPhotoSignature = statutDemandeRepository.save(statutPhotoSignature);
+            }
+
+            demande.setStatutDemande(statutPhotoSignature);
+            demande.setDateModification(LocalDateTime.now());
+            demandeRepository.save(demande);
+
+            HistoriqueStatutDemande historique = new HistoriqueStatutDemande();
+            historique.setDemande(demande);
+            historique.setStatut(statutPhotoSignature);
+            historique.setDateChangement(LocalDateTime.now());
+            historiqueStatutDemandeRepository.save(historique);
+
+            enregistrerJournalActivite(demande, "PHOTO_SIGNATURE_TERMINE");
+
+            ValidationErrorDTO result = new ValidationErrorDTO(true,
+                    "Transition vers PHOTO_SIGNATURE_TERMINE réussie");
+            result.setDemandeId(idDemande);
+            return result;
         } catch (ValidationException e) {
             return new ValidationErrorDTO(false, e.getMessage());
         } catch (Exception e) {

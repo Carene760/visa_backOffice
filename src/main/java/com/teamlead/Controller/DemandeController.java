@@ -54,6 +54,7 @@ import com.teamlead.Service.DocumentScanValidationService;
 import com.teamlead.Service.DuplicataTransfertService;
 import com.teamlead.Service.GenerateurPDFService;
 import com.teamlead.Service.NationaliteService;
+import com.teamlead.Service.PhotoSignatureService;
 import com.teamlead.Service.SituationMatrimonialeService;
 import com.teamlead.Service.StatutTransitionService;
 import com.teamlead.Service.TypeDemandeService;
@@ -110,6 +111,9 @@ public class DemandeController {
 
     @Autowired
     private DocumentScanValidationService documentScanValidationService;
+
+    @Autowired
+    private PhotoSignatureService photoSignatureService;
 
     @Autowired
     private DemandeStatusService demandeStatusService;
@@ -358,8 +362,108 @@ public class DemandeController {
     public String afficherConfirmation() {
         return "demande/confirmation";
     }
+
     /**
-     * Affiche la page de modification pour une demande en statut DOSSIER_CREE
+     * Affiche la page de capture photo/signature pour un dossier existant.
+     * GET /demande/{idDemande}/photo-signature-capture
+     */
+    @GetMapping("/{idDemande}/photo-signature-capture")
+    public String afficherPhotoSignatureCapture(
+            @PathVariable Integer idDemande,
+            Model model) {
+        try {
+            Demande demande = demandeRepository.findById(idDemande)
+                    .orElseThrow(() -> new ValidationException("Demande introuvable", List.of("Aucune demande trouvée pour l'identifiant " + idDemande)));
+            Demandeur demandeur = demande.getDemandeur();
+
+            model.addAttribute("demandeId", idDemande);
+            model.addAttribute("pageTitle", "Capture photo et signature");
+            model.addAttribute("photoTerminee", demandeur != null && Boolean.TRUE.equals(demandeur.getPhotoTerminee()));
+            model.addAttribute("signatureTerminee", demandeur != null && Boolean.TRUE.equals(demandeur.getSignatureTerminee()));
+            model.addAttribute("demandeurNom", demandeur != null ? demandeur.getNom() : null);
+            model.addAttribute("demandeurPrenom", demandeur != null ? demandeur.getPrenom() : null);
+            model.addAttribute("contentPage", "demande/photo_signature_capture.jsp");
+            return "layout";
+        } catch (Exception e) {
+            model.addAttribute("erreur", e.getMessage() != null ? e.getMessage() : "Une erreur est survenue");
+            return "demande/erreur";
+        }
+    }
+
+    /**
+     * Affiche l'étape d'upload scanner après la capture photo/signature.
+     */
+    @GetMapping("/{idDemande}/upload-scanner")
+    public String afficherUploadScanner(
+            @PathVariable Integer idDemande,
+            Model model) {
+        try {
+            Demande demande = demandeRepository.findById(idDemande)
+                    .orElseThrow(() -> new ValidationException("Demande introuvable", List.of("Aucune demande trouvée pour l'identifiant " + idDemande)));
+            model.addAttribute("demande", demande);
+            model.addAttribute("demandeId", idDemande);
+            model.addAttribute("pageTitle", "Upload scanner");
+            return "demande/upload_scanner";
+        } catch (Exception e) {
+            model.addAttribute("erreur", e.getMessage() != null ? e.getMessage() : "Une erreur est survenue");
+            return "demande/erreur";
+        }
+    }
+
+    /**
+     * Enregistre la photo webcam capturée pour un dossier.
+     */
+    @PostMapping("/{id}/photo")
+    @ResponseBody
+    public ResponseEntity<ValidationErrorDTO> enregistrerPhoto(
+            @PathVariable Integer id,
+            @RequestParam("photoBase64") String photoBase64) {
+        try {
+            ValidationErrorDTO response = photoSignatureService.enregistrerPhotoWebcam(id, photoBase64);
+            return response.isSuccess() ? ResponseEntity.ok(response) : ResponseEntity.badRequest().body(response);
+        } catch (ValidationException e) {
+            ValidationErrorDTO response = new ValidationErrorDTO(false, e.getMessage());
+            response.setErrors(e.getErrors());
+            return ResponseEntity.badRequest().body(response);
+        } catch (IllegalArgumentException e) {
+            ValidationErrorDTO response = new ValidationErrorDTO(false, "Base64 invalide");
+            response.addError(e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            ValidationErrorDTO response = new ValidationErrorDTO(false, "Une erreur inattendue est survenue.");
+            response.addError(e.getClass().getSimpleName() + ": " + (e.getMessage() != null ? e.getMessage() : "(sans message)"));
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Enregistre la signature souris capturée pour un dossier.
+     */
+    @PostMapping("/{id}/signature")
+    @ResponseBody
+    public ResponseEntity<ValidationErrorDTO> enregistrerSignature(
+            @PathVariable Integer id,
+            @RequestParam("signatureBase64") String signatureBase64) {
+        try {
+            ValidationErrorDTO response = photoSignatureService.enregistrerSignatureSouris(id, signatureBase64);
+            return response.isSuccess() ? ResponseEntity.ok(response) : ResponseEntity.badRequest().body(response);
+        } catch (ValidationException e) {
+            ValidationErrorDTO response = new ValidationErrorDTO(false, e.getMessage());
+            response.setErrors(e.getErrors());
+            return ResponseEntity.badRequest().body(response);
+        } catch (IllegalArgumentException e) {
+            ValidationErrorDTO response = new ValidationErrorDTO(false, "Base64 invalide");
+            response.addError(e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            ValidationErrorDTO response = new ValidationErrorDTO(false, "Une erreur inattendue est survenue.");
+            response.addError(e.getClass().getSimpleName() + ": " + (e.getMessage() != null ? e.getMessage() : "(sans message)"));
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Affiche la page de modification pour une demande en statut DOSSIER_CREE ou PHOTO_SIGNATURE_TERMINE
      * GET /demande/{idDemande}/modifier
      */
     @GetMapping("/{idDemande}/modifier")
@@ -441,7 +545,7 @@ public class DemandeController {
     }
 
     /**
-     * Modifie une demande en statut DOSSIER_CREE
+     * Modifie une demande en statut DOSSIER_CREE ou PHOTO_SIGNATURE_TERMINE
      * POST /demande/{idDemande}/modifier
      */
     @PostMapping("/{idDemande}/modifier")
@@ -562,6 +666,19 @@ public class DemandeController {
             // Analyser la complétude
             ValidationErrorDTO completion = demandeModificationService.analyserCompletion(idDemande);
             model.addAttribute("completion", completion);
+
+            // Convertir les images webcam/signature en base64 pour affichage
+            Demandeur demandeur = demande.getDemandeur();
+            if (demandeur != null) {
+                if (demandeur.getPhotoWebcam() != null && demandeur.getPhotoWebcam().length > 0) {
+                    String photoBase64 = "data:image/jpeg;base64," + java.util.Base64.getEncoder().encodeToString(demandeur.getPhotoWebcam());
+                    model.addAttribute("photoWebcamBase64", photoBase64);
+                }
+                if (demandeur.getSignatureSouris() != null && demandeur.getSignatureSouris().length > 0) {
+                    String signatureBase64 = "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(demandeur.getSignatureSouris());
+                    model.addAttribute("signatureSourisBase64", signatureBase64);
+                }
+            }
 
             return "demande/detail_demande";
 
