@@ -46,10 +46,7 @@ public class DemandeStatusService {
     }
 
     public void initializeDemandeStatus(Demande demande, boolean sansDonneesAnterieures) {
-        StatutDemande statut = statutDemandeRepository.findByLibelle("DOSSIER_CREE");
-        if (statut == null)
-            throw new ValidationException("Erreur de configuration du système",
-                    List.of("Le statut 'DOSSIER_CREE' n'existe pas en base de données."));
+        StatutDemande statut = obtenirOuCreerStatut("DOSSIER_CREE");
         HistoriqueStatutDemande h = new HistoriqueStatutDemande();
         h.setDemande(demande);
         h.setStatut(statut);
@@ -59,6 +56,45 @@ public class DemandeStatusService {
         demande.setStatutDemande(statut);
         demande.setDateModification(LocalDateTime.now());
         demandeRepository.save(demande);
+    }
+
+    @Transactional
+    public ValidationErrorDTO transitionnerVersPhotoSignatureTerminee(Integer idDemande) {
+        try {
+            Demande demande = demandeRepository.findById(idDemande)
+                    .orElseThrow(() -> new ValidationException("Demande non trouvée",
+                            List.of("La demande " + idDemande + " n'existe pas")));
+
+            StatutDemande statutActuel = demande.getStatutDemande();
+            if (statutActuel != null && "PHOTO_SIGNATURE_TERMINE".equalsIgnoreCase(statutActuel.getLibelle())) {
+                return new ValidationErrorDTO(true, "La demande est déjà au statut PHOTO_SIGNATURE_TERMINE");
+            }
+            if (statutActuel == null || !"DOSSIER_CREE".equalsIgnoreCase(statutActuel.getLibelle())) {
+                return new ValidationErrorDTO(false,
+                        "Erreur: Le statut actuel n'est pas DOSSIER_CREE. Transition impossible.");
+            }
+
+            StatutDemande statutCible = obtenirOuCreerStatut("PHOTO_SIGNATURE_TERMINE");
+            demande.setStatutDemande(statutCible);
+            demande.setDateModification(LocalDateTime.now());
+            demandeRepository.save(demande);
+
+            HistoriqueStatutDemande historique = new HistoriqueStatutDemande();
+            historique.setDemande(demande);
+            historique.setStatut(statutCible);
+            historique.setDateChangement(LocalDateTime.now());
+            historiqueStatutDemandeRepository.save(historique);
+
+            enregistrerJournalActivite(demande, "PHOTO_SIGNATURE_TERMINE");
+
+            ValidationErrorDTO result = new ValidationErrorDTO(true, "Transition vers PHOTO_SIGNATURE_TERMINE réussie");
+            result.setDemandeId(idDemande);
+            return result;
+        } catch (ValidationException e) {
+            return new ValidationErrorDTO(false, e.getMessage());
+        } catch (Exception e) {
+            return new ValidationErrorDTO(false, "Erreur inattendue: " + e.getMessage());
+        }
     }
 
     public void enregistrerJournalActivite(Demande demande, String codeEvenement) {
@@ -96,9 +132,15 @@ public class DemandeStatusService {
             if (statutActuel != null && "SCAN_TERMINE".equalsIgnoreCase(statutActuel.getLibelle())) {
                 return new ValidationErrorDTO(true, "La demande est déjà au statut SCAN_TERMINE");
             }
-            if (statutActuel == null || !statutActuel.getLibelle().equals("DOSSIER_CREE")) {
+            if (statutActuel == null || !"PHOTO_SIGNATURE_TERMINE".equalsIgnoreCase(statutActuel.getLibelle())) {
                 return new ValidationErrorDTO(false,
-                        "Erreur: Le statut actuel n'est pas DOSSIER_CREE. Transition impossible.");
+                        "Erreur: Le statut actuel n'est pas PHOTO_SIGNATURE_TERMINE. Transition impossible.");
+            }
+
+            if (demande.getDemandeur() == null || !Boolean.TRUE.equals(demande.getDemandeur().getPhotoTerminee())
+                    || !Boolean.TRUE.equals(demande.getDemandeur().getSignatureTerminee())) {
+                return new ValidationErrorDTO(false,
+                        "Erreur: La photo webcam et la signature souris doivent être terminées avant la finalisation.");
             }
 
             // Valider que tous les obligatoires sont scannés
@@ -108,12 +150,7 @@ public class DemandeStatusService {
             }
 
             // Charger le nouveau statut
-            StatutDemande statutScanTermine = statutDemandeRepository.findByLibelle("SCAN_TERMINE");
-            if (statutScanTermine == null) {
-                statutScanTermine = new StatutDemande();
-                statutScanTermine.setLibelle("SCAN_TERMINE");
-                statutDemandeRepository.save(statutScanTermine);
-            }
+            StatutDemande statutScanTermine = obtenirOuCreerStatut("SCAN_TERMINE");
 
             // Mettre à jour le statut
             demande.setStatutDemande(statutScanTermine);
@@ -146,5 +183,65 @@ public class DemandeStatusService {
         } catch (Exception e) {
             return new ValidationErrorDTO(false, "Erreur inattendue: " + e.getMessage());
         }
+    }
+
+    @Transactional
+    public ValidationErrorDTO reinitialiserPourModification(Integer idDemande, String etape) {
+        try {
+            Demande demande = demandeRepository.findById(idDemande)
+                    .orElseThrow(() -> new ValidationException("Demande non trouvée",
+                            List.of("La demande " + idDemande + " n'existe pas")));
+
+            String etapeNormalisee = etape != null ? etape.trim().toLowerCase() : "";
+            if (etapeNormalisee.isBlank()) {
+                return new ValidationErrorDTO(false, "L'étape de reprise est obligatoire.");
+            }
+
+            StatutDemande statutCible;
+            if ("photo-signature".equals(etapeNormalisee)) {
+                statutCible = obtenirOuCreerStatut("DOSSIER_CREE");
+                if (demande.getDemandeur() != null) {
+                    demande.getDemandeur().setPhotoTerminee(Boolean.FALSE);
+                    demande.getDemandeur().setSignatureTerminee(Boolean.FALSE);
+                    demande.getDemandeur().setPhotoWebcam(null);
+                    demande.getDemandeur().setSignatureSouris(null);
+                }
+            } else if ("upload".equals(etapeNormalisee)) {
+                statutCible = obtenirOuCreerStatut("PHOTO_SIGNATURE_TERMINE");
+            } else {
+                return new ValidationErrorDTO(false, "Étape de reprise inconnue: " + etape);
+            }
+
+            demande.setStatutDemande(statutCible);
+            demande.setDateModification(LocalDateTime.now());
+            demandeRepository.save(demande);
+
+            HistoriqueStatutDemande historique = new HistoriqueStatutDemande();
+            historique.setDemande(demande);
+            historique.setStatut(statutCible);
+            historique.setDateChangement(LocalDateTime.now());
+            historiqueStatutDemandeRepository.save(historique);
+
+            enregistrerJournalActivite(demande, "REPRISE_" + etapeNormalisee.toUpperCase());
+
+            ValidationErrorDTO result = new ValidationErrorDTO(true, "Dossier réinitialisé pour l'étape: " + etapeNormalisee);
+            result.setDemandeId(idDemande);
+            return result;
+        } catch (ValidationException e) {
+            return new ValidationErrorDTO(false, e.getMessage());
+        } catch (Exception e) {
+            return new ValidationErrorDTO(false, "Erreur inattendue: " + e.getMessage());
+        }
+    }
+
+    private StatutDemande obtenirOuCreerStatut(String libelle) {
+        StatutDemande statut = statutDemandeRepository.findByLibelle(libelle);
+        if (statut != null) {
+            return statut;
+        }
+
+        StatutDemande nouveauStatut = new StatutDemande();
+        nouveauStatut.setLibelle(libelle);
+        return statutDemandeRepository.save(nouveauStatut);
     }
 }
