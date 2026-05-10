@@ -2,8 +2,10 @@ package com.teamlead.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import com.teamlead.Model.Demande;
 import com.teamlead.Model.PieceAFournir;
 import com.teamlead.Model.TypeDocument;
@@ -37,8 +39,7 @@ public class DocumentScanValidationService {
             
             // Vérifier si c'est obligatoire
             if (typeDoc != null && isDocumentObligatoire(typeDoc)) {
-                Integer countScans = documentScanRepository.countByIdPieceAFournir(piece.getId());
-                boolean hasScans = countScans != null && countScans > 0;
+                boolean hasScans = documentScanRepository.existsByIdPieceAFournir(piece.getId());
                 if (!hasScans && !pieceAutoCompletee) {
                     manquants.add(typeDoc.getLibelle() != null ? typeDoc.getLibelle() : "Document sans libellé");
                 }
@@ -61,8 +62,8 @@ public class DocumentScanValidationService {
 
         for (PieceAFournir piece : pieces) {
             TypeDocument typeDoc = piece.getTypeDocument();
-            Integer countScans = documentScanRepository.countByIdPieceAFournir(piece.getId());
-            boolean hasScans = (countScans != null && countScans > 0) || Boolean.TRUE.equals(piece.getScanComplete());
+            boolean hasScans = documentScanRepository.existsByIdPieceAFournir(piece.getId())
+                    || Boolean.TRUE.equals(piece.getScanComplete());
 
             if (typeDoc != null && isDocumentObligatoire(typeDoc)) {
                 totalObligatoires++;
@@ -89,9 +90,24 @@ public class DocumentScanValidationService {
 
     /**
      * Valide avant transition vers SCAN_TERMINE
-     * Tous les obligatoires doivent être scannés
+     * Prérequis:
+     * - Le statut doit être PHOTO_SIGNATURE_TERMINE
+     * - Tous les documents obligatoires doivent être scannés
      */
     public String validerAvantTransitionScanTermine(Integer idDemande) {
+        Demande demande = demandeRepository.findById(idDemande).orElse(null);
+        if (demande == null) {
+            return "Erreur: Demande introuvable.";
+        }
+
+        String statutCourant = demande.getStatutDemande() != null
+                ? demande.getStatutDemande().getLibelle()
+                : "INCONNU";
+        if (!"PHOTO_SIGNATURE_TERMINE".equalsIgnoreCase(statutCourant)) {
+            return "Erreur: Transition vers SCAN_TERMINE impossible tant que l'etape photo/signature n'est pas terminee. "
+                    + "Statut actuel: " + statutCourant + ".";
+        }
+
         List<String> manquants = verifierTousLesObligatoiresScannes(idDemande);
 
         if (!manquants.isEmpty()) {
@@ -124,8 +140,8 @@ public class DocumentScanValidationService {
 
         for (PieceAFournir piece : pieces) {
             TypeDocument typeDoc = piece.getTypeDocument();
-            Integer countScans = documentScanRepository.countByIdPieceAFournir(piece.getId());
-            boolean hasScans = (countScans != null && countScans > 0) || Boolean.TRUE.equals(piece.getScanComplete());
+            boolean hasScans = documentScanRepository.existsByIdPieceAFournir(piece.getId())
+                    || Boolean.TRUE.equals(piece.getScanComplete());
 
             if (typeDoc != null && isDocumentObligatoire(typeDoc)) {
                 totalObligatoires++;

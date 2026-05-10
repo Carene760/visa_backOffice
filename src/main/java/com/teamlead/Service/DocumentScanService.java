@@ -24,9 +24,9 @@ import com.teamlead.Model.Demande;
 import com.teamlead.Model.DocumentScan;
 import com.teamlead.Model.PieceAFournir;
 import com.teamlead.Repository.DecisionDocumentRepository;
+import com.teamlead.Repository.DecisionRepository;
 import com.teamlead.Repository.DocumentScanRepository;
 import com.teamlead.Repository.PieceAFournirRepository;
-import com.teamlead.Repository.DecisionRepository;
 
 @Service
 public class DocumentScanService {
@@ -243,6 +243,8 @@ public class DocumentScanService {
 
     /**
      * Finalise automatiquement le dossier après upload pour les demandes sans données antérieures en mode "uploader".
+     * L'upload reste possible, mais la finalisation vers SCAN_TERMINE est bloquée tant que
+     * l'étape photo/signature n'est pas terminée.
      */
     private void finaliserSiDossierCompletEtEnModeUpload(Demande demande) {
         if (demande == null || !Boolean.TRUE.equals(demande.getSansDonneesAnterieures())) {
@@ -252,6 +254,13 @@ public class DocumentScanService {
             return;
         }
         if (demande.getStatutDemande() != null && "SCAN_TERMINE".equalsIgnoreCase(demande.getStatutDemande().getLibelle())) {
+            return;
+        }
+
+        // Bloquer uniquement la finalisation tant que photo/signature n'est pas terminée.
+        // L'upload des fichiers reste autorisé.
+        if (demande.getStatutDemande() == null
+                || !"PHOTO_SIGNATURE_TERMINE".equalsIgnoreCase(demande.getStatutDemande().getLibelle())) {
             return;
         }
 
