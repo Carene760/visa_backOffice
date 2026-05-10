@@ -45,6 +45,13 @@ public class CarteResidentService {
     }
 
     /**
+     * Récupère une carte résident par id en chargeant la demande associée
+     */
+    public CarteResident obtenirParIdAvecDemande(Integer id) {
+        return repository.findByIdWithDemande(id);
+    }
+
+    /**
      * Récupère une carte de résident par sa référence
      * 
      * @param reference La référence unique

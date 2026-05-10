@@ -119,6 +119,8 @@ public class DemandeController {
 
     @Autowired
     private CarteResidentRepository carteResidentRepository;
+    @Autowired
+    private CarteResidentService carteResidentService;
 
     @Autowired
     private PasseportVisaRepository passeportVisaRepository;
@@ -808,6 +810,47 @@ public class DemandeController {
         }
         model.addAttribute("contentPage", "demande/duplicata.jsp");
         return "layout";
+    }
+
+    /**
+     * Affiche la fiche d'une carte résident (recherche + preview)
+     */
+    @GetMapping("/carte/fiche")
+    public String ficheCarteResident(
+            @RequestParam(required = false) Integer carteId,
+            Model model) {
+        model.addAttribute("pageTitle", "Fiche carte résident");
+        if (carteId != null) {
+            try {
+                CarteResident carte = carteResidentService.obtenirParIdAvecDemande(carteId);
+                if (carte == null) {
+                    model.addAttribute("erreur", "Carte non trouvée");
+                } else {
+                    model.addAttribute("carte", carte);
+                    Demande demande = carte.getDemande();
+                    model.addAttribute("demande", demande);
+                    if (demande != null && demande.getDemandeur() != null && demande.getDemandeur().getPhotoWebcam() != null) {
+                        model.addAttribute("photoBase64", java.util.Base64.getEncoder().encodeToString(demande.getDemandeur().getPhotoWebcam()));
+                    }
+                    if (demande != null && demande.getDemandeur() != null && demande.getDemandeur().getSignatureSouris() != null) {
+                        model.addAttribute("signatureBase64", java.util.Base64.getEncoder().encodeToString(demande.getDemandeur().getSignatureSouris()));
+                    }
+                }
+            } catch (Exception e) {
+                model.addAttribute("erreur", "Erreur: " + e.getMessage());
+            }
+        }
+        model.addAttribute("contentPage", "carte_resident/fiche_carte_resident.jsp");
+        return "layout";
+    }
+
+    @GetMapping("/carte/{id}/generer-fiche")
+    public ResponseEntity<byte[]> genererFicheCarte(@PathVariable Integer id) {
+        byte[] pdf = generateurPDFService.genererFicheCarteResident(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=fiche_carte_" + id + ".pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 
     /**
