@@ -22,8 +22,10 @@ import com.teamlead.Model.Demande;
 import com.teamlead.Model.PieceAFournir;
 import com.teamlead.Repository.DemandeRepository;
 import com.teamlead.Repository.PieceAFournirRepository;
-import com.teamlead.Repository.DocumentScanRepository;
+import com.teamlead.Model.CarteResident;
+import com.teamlead.Repository.CarteResidentRepository;
 import com.teamlead.Model.DocumentScan;
+import com.teamlead.Repository.DocumentScanRepository;
 import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.layout.element.Image;
 
@@ -38,6 +40,9 @@ public class GenerateurPDFService {
 
     @Autowired
     private DocumentScanRepository documentScanRepository;
+
+    @Autowired
+    private CarteResidentRepository carteResidentRepository;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
@@ -359,5 +364,56 @@ public class GenerateurPDFService {
     private void addRow(Table table, String cle, String valeur) {
         table.addCell(new Cell().add(new Paragraph(cle)));
         table.addCell(new Cell().add(new Paragraph(valeur != null ? valeur : "-")));
+    }
+
+    /**
+     * Génère la fiche PDF pour une CarteResident (inclut la demande associée)
+     */
+    public byte[] genererFicheCarteResident(Integer idCarte) {
+        CarteResident carte = carteResidentRepository.findByIdWithDemande(idCarte);
+        if (carte == null) throw new IllegalArgumentException("Carte resident non trouvée: " + idCarte);
+
+        Demande demande = carte.getDemande();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            PdfWriter writer = new PdfWriter(baos);
+            PdfDocument pdfDoc = new PdfDocument(writer);
+            Document document = new Document(pdfDoc);
+            document.setMargins(24,24,24,24);
+
+            document.add(creerBlocEnTete(demande));
+            document.add(creerSectionTitre("FICHE CARTE RÉSIDENT"));
+
+            Table table = new Table(UnitValue.createPercentArray(2)).useAllAvailableWidth();
+            table.addCell(cellHeader("Champ"));
+            table.addCell(cellHeader("Valeur"));
+            addRow(table, "Référence carte", carte.getReference());
+            addRow(table, "Date émission", carte.getDateEmission() != null ? carte.getDateEmission().format(DATETIME_FORMATTER) : "-");
+            addRow(table, "Date entrée", carte.getDateEntree() != null ? carte.getDateEntree().toString() : "-");
+            addRow(table, "Date expiration", carte.getDateExpiration() != null ? carte.getDateExpiration().toString() : "-");
+            addRow(table, "Demande liée", demande != null ? String.valueOf(demande.getId()) : "-");
+            document.add(table);
+
+            // Ajouter photo/signature du demandeur si présent
+            if (demande != null && demande.getDemandeur() != null) {
+                byte[] photo = demande.getDemandeur().getPhotoWebcam();
+                byte[] signature = demande.getDemandeur().getSignatureSouris();
+                if (photo != null || signature != null) {
+                    document.add(creerSectionTitre("PHOTO / SIGNATURE"));
+                    Table t = new Table(UnitValue.createPercentArray(new float[]{1,1})).useAllAvailableWidth();
+                    if (photo != null) t.addCell(new Cell().add(new Paragraph("Photo").setBold()).add(new Image(ImageDataFactory.create(photo)).setAutoScale(true)));
+                    else t.addCell(new Cell().add(new Paragraph("Photo").setBold()).add(new Paragraph("(non fournie)")));
+                    if (signature != null) t.addCell(new Cell().add(new Paragraph("Signature").setBold()).add(new Image(ImageDataFactory.create(signature)).setAutoScale(true)));
+                    else t.addCell(new Cell().add(new Paragraph("Signature").setBold()).add(new Paragraph("(non fournie)")));
+                    document.add(t);
+                }
+            }
+
+            document.close();
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur génération PDF carte: " + e.getMessage(), e);
+        }
+        return baos.toByteArray();
     }
 }
