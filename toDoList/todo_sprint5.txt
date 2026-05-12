@@ -114,7 +114,6 @@ Branche 2 : sprint5/2/photo_signature_uploadAVEC_menu_et_pages_backoffice
 	-> Afficher la fiche carte resident avec la demande liee, photo et signature.
 
 
-
 Consignes fonctionnelles :
 - Une demande ne doit jamais passer a `SCAN_TERMINE` sans `PHOTO_SIGNATURE_TERMINE`.
 - Les dossiers en `DOSSIER_CREE` doivent rester modifiables.

@@ -231,6 +231,15 @@
                 </li>
 
                 <li style="margin-bottom: 25px;">
+                    <a href="/demande/documents-modifiables" class="sidebar-menu-item">
+                        📷 Photo / Signature
+                    </a>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 8px 15px 0 15px;">
+                        Reprendre un dossier en cours
+                    </p>
+                </li>
+
+                <li style="margin-bottom: 25px;">
                     <a href="/demande/duplicata" class="sidebar-menu-item">
                         📋 Duplicata
                     </a>

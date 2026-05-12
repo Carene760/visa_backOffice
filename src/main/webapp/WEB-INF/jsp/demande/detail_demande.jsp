@@ -393,6 +393,30 @@
         .full-width {
             grid-column: 1 / -1;
         }
+
+        .completion-fill-100 {
+            width: 100% !important;
+        }
+
+        .completion-fill-50 {
+            width: 50% !important;
+        }
+
+        .error-obligatoire {
+            color: #e74c3c;
+        }
+
+        .error-optionnel {
+            color: #f39c12;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+
+        }
     </style>
 </head>
 <body>
@@ -402,20 +426,26 @@
 
         <header>
             <h1>Détail du Dossier</h1>
-            <div class="dossier-reference">
-                <strong>Dossier #${demande.id}</strong>
-                <span> | Créé le ${demande.dateDemande}</span>
-                <span class="status-badge ${fn:toLowerCase(demande.statutDemande.libelle) == 'dossier_cree' ? 'status-dossier-cree' : fn:toLowerCase(demande.statutDemande.libelle) == 'scan_termine' ? 'status-scan-termine' : fn:toLowerCase(demande.statutDemande.libelle) == 'visa_approuvee' ? 'status-visa-approuvee' : 'status-refuse'}">
+            <div class="header-top">
+                <div class="dossier-reference">
+                  <strong>Dossier #${demande.id}</strong>
+                  <span> | Créé le ${demande.dateDemande}</span>
+                  <span class="status-badge ${fn:toLowerCase(demande.statutDemande.libelle) == 'dossier_cree' ? 'status-dossier-cree' : fn:toLowerCase(demande.statutDemande.libelle) == 'scan_termine' ? 'status-scan-termine' : fn:toLowerCase(demande.statutDemande.libelle) == 'visa_approuvee' ? 'status-visa-approuvee' : 'status-refuse'}">
                     ${demande.statutDemande != null ? demande.statutDemande.libelle : 'INCONNU'}
-                </span>
+                  </span>
+                </div>
+                <div>
+                   <a href="/demande/${demande.id}/photo-signature-capture" class="btn">Photo/Signature</a>
+                </div>
             </div>
+            
         </header>
 
-        <!-- Alert: Modification Lock (if not DOSSIER_CREE) -->
-        <c:if test="${demande.statutDemande.libelle != 'DOSSIER_CREE'}">
+        <!-- Alert: Modification Lock uniquement au statut SCAN_TERMINE -->
+        <c:if test="${scanTermine}">
             <div class="alert alert-danger">
                 <strong>⛔ Modification non autorisée</strong>
-                <p>Ce dossier a atteint le statut "${demande.statutDemande.libelle}". Aucune modification n'est possible après DOSSIER_CREE.</p>
+                <p>Ce dossier a atteint le statut "SCAN_TERMINE". Aucune modification n'est possible après cette étape.</p>
             </div>
         </c:if>
 
@@ -504,7 +534,8 @@
                         </span>
                     </div>
                     <div class="completion-bar">
-                        <div class="completion-fill" style="width: ${completion.success ? '100' : '50'}%"></div>
+                        <c:set var="fillClass" value="${completion.success ? 'completion-fill-100' : 'completion-fill-50'}" />
+                        <div class="completion-fill ${fillClass}"></div>
                     </div>
                     <p style="font-size: 13px; color: #666; margin-top: 10px;">
                         ${completion.message}
@@ -515,7 +546,8 @@
                                     <c:if test="${not empty completion.errors}">
                         <ul style="margin-left: 20px; margin-top: 10px; font-size: 13px;">
                             <c:forEach var="err" items="${completion.errors}">
-                                <li style="margin: 5px 0; ${fn:contains(err, 'OBLIGATOIRE') ? 'color: #e74c3c' : 'color: #f39c12'}">
+                                <c:set var="errorClass" value="${fn:contains(err, 'OBLIGATOIRE') ? 'error-obligatoire' : 'error-optionnel'}" />
+                                <li style="margin: 5px 0;" class="${errorClass}">
                                     ${err}
                                 </li>
                             </c:forEach>
@@ -599,6 +631,32 @@
             </div>
 
             <!-- Card 6: Historique des Statuts (full width) -->
+            <!-- Card 5b: Photo et Signature Capturées -->
+            <div class="card">
+                <h2>📷 Photo et Signature Capturées</h2>
+                <c:if test="${not empty photoWebcamBase64 or not empty signatureSourisBase64}">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <c:if test="${not empty photoWebcamBase64}">
+                            <div>
+                                <strong style="display: block; margin-bottom: 8px; color: #2c3e50;">Photo Webcam</strong>
+                                <img src="${photoWebcamBase64}" alt="Photo webcam capturée" style="width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; max-height: 300px; object-fit: cover;">
+                                <div style="margin-top: 8px; font-size: 12px; color: #666;">✓ Enregistrée</div>
+                            </div>
+                        </c:if>
+                        <c:if test="${not empty signatureSourisBase64}">
+                            <div>
+                                <strong style="display: block; margin-bottom: 8px; color: #2c3e50;">Signature</strong>
+                                <img src="${signatureSourisBase64}" alt="Signature capturée" style="width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; max-height: 300px; object-fit: contain;">
+                                <div style="margin-top: 8px; font-size: 12px; color: #666;">✓ Enregistrée</div>
+                            </div>
+                        </c:if>
+                    </div>
+                </c:if>
+                <c:if test="${empty photoWebcamBase64 and empty signatureSourisBase64}">
+                    <p style="color: #999; font-style: italic;">Aucune photo ou signature enregistrée pour le moment.</p>
+                </c:if>
+            </div>
+
             <div class="card full-width">
                 <h2>Historique des Statuts</h2>
                 <div class="timeline">
@@ -628,7 +686,7 @@
 
         <!-- Actions -->
         <div class="actions" style="justify-content: center; margin-top: 30px;">
-            <c:if test="${dossierCree}">
+            <c:if test="${not scanTermine}">
                 <a href="/demande/${demande.id}/modifier" class="btn">Modifier Dossier</a>
             </c:if>
             <a href="/demande/${demande.id}/generer-recepisse" class="btn" download="recepisse_${demande.id}.pdf">Télécharger Récépissé PDF</a>
