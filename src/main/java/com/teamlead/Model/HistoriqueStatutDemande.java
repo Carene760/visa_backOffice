@@ -33,6 +33,6 @@ public class HistoriqueStatutDemande {
     @JoinColumn(name = "id_statut", nullable = false, foreignKey = @ForeignKey(name = "historique_statut_demande_id_statut_fkey"))
     private StatutDemande statut;
 
-    @Column(name = "date_changement")
+    @Column(name = "date_changement", nullable = false)
     private LocalDateTime dateChangement;
 }

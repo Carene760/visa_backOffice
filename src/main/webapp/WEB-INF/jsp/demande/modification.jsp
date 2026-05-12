@@ -203,7 +203,7 @@
     <div class="container">
         <header>
             <h1>Modification de Demande #${demandeId}</h1>
-            <p>Vous pouvez modifier les informations tant que le dossier est en statut DOSSIER_CREE</p>
+            <p>Vous pouvez modifier les informations tant que le dossier n'est pas en statut SCAN_TERMINE</p>
         </header>
 
         <!-- Affichage des erreurs -->
