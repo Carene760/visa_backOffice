@@ -1,6 +1,7 @@
 package com.teamlead.Controller;
 
 import java.time.LocalDate;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -54,6 +55,7 @@ import com.teamlead.Service.DocumentScanValidationService;
 import com.teamlead.Service.DuplicataTransfertService;
 import com.teamlead.Service.GenerateurPDFService;
 import com.teamlead.Service.NationaliteService;
+import com.teamlead.Service.PhotoSignatureService;
 import com.teamlead.Service.SituationMatrimonialeService;
 import com.teamlead.Service.StatutTransitionService;
 import com.teamlead.Service.TypeDemandeService;
@@ -110,6 +112,9 @@ public class DemandeController {
 
     @Autowired
     private DocumentScanValidationService documentScanValidationService;
+
+    @Autowired
+    private PhotoSignatureService photoSignatureService;
 
     @Autowired
     private DemandeStatusService demandeStatusService;
@@ -358,16 +363,115 @@ public class DemandeController {
     public String afficherConfirmation() {
         return "demande/confirmation";
     }
+
     /**
-     * Affiche la page de modification pour une demande en statut DOSSIER_CREE
-     * GET /demande/{idDemande}/modifier
+     * Affiche la page de capture photo/signature pour un dossier existant.
+     * GET /demande/{idDemande}/photo-signature-capture
      */
-    @GetMapping("/{idDemande}/modifier")
-    public String afficherModification(
+    @GetMapping("/{idDemande}/photo-signature-capture")
+    public String afficherPhotoSignatureCapture(
             @PathVariable Integer idDemande,
             Model model) {
         try {
-            // Vérifier autorisation
+            Demande demande = demandeRepository.findById(idDemande)
+                    .orElseThrow(() -> new ValidationException("Demande introuvable", List.of("Aucune demande trouvée pour l'identifiant " + idDemande)));
+            Demandeur demandeur = demande.getDemandeur();
+
+            model.addAttribute("demandeId", idDemande);
+            model.addAttribute("pageTitle", "Capture photo et signature");
+            model.addAttribute("photoTerminee", demandeur != null && Boolean.TRUE.equals(demandeur.getPhotoTerminee()));
+            model.addAttribute("signatureTerminee", demandeur != null && Boolean.TRUE.equals(demandeur.getSignatureTerminee()));
+            model.addAttribute("demandeurNom", demandeur != null ? demandeur.getNom() : null);
+            model.addAttribute("demandeurPrenom", demandeur != null ? demandeur.getPrenom() : null);
+            model.addAttribute("contentPage", "demande/photo_signature_capture.jsp");
+            return "layout";
+        } catch (Exception e) {
+            model.addAttribute("erreur", e.getMessage() != null ? e.getMessage() : "Une erreur est survenue");
+            return "demande/erreur";
+        }
+    }
+
+    /**
+     * Affiche l'étape d'upload scanner après la capture photo/signature.
+     */
+    @GetMapping("/{idDemande}/upload-scanner")
+    public String afficherUploadScanner(
+            @PathVariable Integer idDemande,
+            Model model) {
+        try {
+            Demande demande = demandeRepository.findById(idDemande)
+                    .orElseThrow(() -> new ValidationException("Demande introuvable", List.of("Aucune demande trouvée pour l'identifiant " + idDemande)));
+            model.addAttribute("demande", demande);
+            model.addAttribute("demandeId", idDemande);
+            model.addAttribute("pageTitle", "Upload scanner");
+            return "demande/upload_scanner";
+        } catch (Exception e) {
+            model.addAttribute("erreur", e.getMessage() != null ? e.getMessage() : "Une erreur est survenue");
+            return "demande/erreur";
+        }
+    }
+
+    /**
+     * Enregistre la photo webcam capturée pour un dossier.
+     */
+    @PostMapping("/{id}/photo")
+    @ResponseBody
+    public ResponseEntity<ValidationErrorDTO> enregistrerPhoto(
+            @PathVariable Integer id,
+            @RequestParam("photoBase64") String photoBase64) {
+        try {
+            ValidationErrorDTO response = photoSignatureService.enregistrerPhotoWebcam(id, photoBase64);
+            return response.isSuccess() ? ResponseEntity.ok(response) : ResponseEntity.badRequest().body(response);
+        } catch (ValidationException e) {
+            ValidationErrorDTO response = new ValidationErrorDTO(false, e.getMessage());
+            response.setErrors(e.getErrors());
+            return ResponseEntity.badRequest().body(response);
+        } catch (IllegalArgumentException e) {
+            ValidationErrorDTO response = new ValidationErrorDTO(false, "Base64 invalide");
+            response.addError(e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            ValidationErrorDTO response = new ValidationErrorDTO(false, "Une erreur inattendue est survenue.");
+            response.addError(e.getClass().getSimpleName() + ": " + (e.getMessage() != null ? e.getMessage() : "(sans message)"));
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Enregistre la signature souris capturée pour un dossier.
+     */
+    @PostMapping("/{id}/signature")
+    @ResponseBody
+    public ResponseEntity<ValidationErrorDTO> enregistrerSignature(
+            @PathVariable Integer id,
+            @RequestParam("signatureBase64") String signatureBase64) {
+        try {
+            ValidationErrorDTO response = photoSignatureService.enregistrerSignatureSouris(id, signatureBase64);
+            return response.isSuccess() ? ResponseEntity.ok(response) : ResponseEntity.badRequest().body(response);
+        } catch (ValidationException e) {
+            ValidationErrorDTO response = new ValidationErrorDTO(false, e.getMessage());
+            response.setErrors(e.getErrors());
+            return ResponseEntity.badRequest().body(response);
+        } catch (IllegalArgumentException e) {
+            ValidationErrorDTO response = new ValidationErrorDTO(false, "Base64 invalide");
+            response.addError(e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            ValidationErrorDTO response = new ValidationErrorDTO(false, "Une erreur inattendue est survenue.");
+            response.addError(e.getClass().getSimpleName() + ": " + (e.getMessage() != null ? e.getMessage() : "(sans message)"));
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Affiche la page de modification pour une demande en statut DOSSIER_CREE ou PHOTO_SIGNATURE_TERMINE
+     * GET /demande/{idDemande}/modifier
+     */
+    @GetMapping("/{idDemande}/modifier")
+    public String afficherChoixModification(
+            @PathVariable Integer idDemande,
+            Model model) {
+        try {
             ValidationErrorDTO authCheck = demandeModificationService.verifierAutorisation(idDemande);
             if (!authCheck.isSuccess()) {
                 model.addAttribute("erreur", authCheck.getMessage());
@@ -375,7 +479,40 @@ public class DemandeController {
                 return "demande/modification_non_autorisee";
             }
 
-            // Analyser la complétude
+            Demande demande = demandeRepository.findById(idDemande)
+                    .orElseThrow(() -> new ValidationException("Demande introuvable"));
+
+            ValidationErrorDTO completion = demandeModificationService.analyserCompletion(idDemande);
+
+            model.addAttribute("demande", demande);
+            model.addAttribute("demandeId", idDemande);
+            model.addAttribute("completion", completion);
+            model.addAttribute("pageTitle", "Choix de reprise du dossier");
+            model.addAttribute("contentPage", "demande/modifier_dossier.jsp");
+            return "layout";
+        } catch (Exception e) {
+            model.addAttribute("erreur", "Une erreur est survenue");
+            model.addAttribute("erreurs", List.of(e.getMessage()));
+            return "demande/modification_non_autorisee";
+        }
+    }
+
+    /**
+     * Affiche le formulaire de modification complet du dossier.
+     * GET /demande/{idDemande}/modifier/formulaire
+     */
+    @GetMapping("/{idDemande}/modifier/formulaire")
+    public String afficherFormulaireModification(
+            @PathVariable Integer idDemande,
+            Model model) {
+        try {
+            ValidationErrorDTO authCheck = demandeModificationService.verifierAutorisation(idDemande);
+            if (!authCheck.isSuccess()) {
+                model.addAttribute("erreur", authCheck.getMessage());
+                model.addAttribute("erreurs", authCheck.getErrors());
+                return "demande/modification_non_autorisee";
+            }
+
             ValidationErrorDTO completion = demandeModificationService.analyserCompletion(idDemande);
             model.addAttribute("demandeId", idDemande);
             model.addAttribute("completion", completion);
@@ -428,11 +565,8 @@ public class DemandeController {
             demandeDTO.setPiecesPresentes(piecesPresentes);
             model.addAttribute("demandeDTO", demandeDTO);
 
-            // Charger les données de référence
             chargerDonneesReference(model);
-
             return "demande/modification";
-
         } catch (Exception e) {
             model.addAttribute("erreur", "Une erreur est survenue");
             model.addAttribute("erreurs", List.of(e.getMessage()));
@@ -440,8 +574,18 @@ public class DemandeController {
         }
     }
 
+    @GetMapping("/{idDemande}/photo-signature-capture")
+    public String ouvrirEtapePhotoSignature(@PathVariable Integer idDemande, Model model) {
+        return afficherDetailDemande(idDemande, model);
+    }
+
+    @GetMapping("/{idDemande}/upload-scanner")
+    public String ouvrirEtapeUploadScanner(@PathVariable Integer idDemande, Model model) {
+        return afficherDetailDemande(idDemande, model);
+    }
+
     /**
-     * Modifie une demande en statut DOSSIER_CREE
+     * Modifie une demande en statut DOSSIER_CREE ou PHOTO_SIGNATURE_TERMINE
      * POST /demande/{idDemande}/modifier
      */
     @PostMapping("/{idDemande}/modifier")
@@ -562,6 +706,19 @@ public class DemandeController {
             // Analyser la complétude
             ValidationErrorDTO completion = demandeModificationService.analyserCompletion(idDemande);
             model.addAttribute("completion", completion);
+
+            // Convertir les images webcam/signature en base64 pour affichage
+            Demandeur demandeur = demande.getDemandeur();
+            if (demandeur != null) {
+                if (demandeur.getPhotoWebcam() != null && demandeur.getPhotoWebcam().length > 0) {
+                    String photoBase64 = "data:image/jpeg;base64," + java.util.Base64.getEncoder().encodeToString(demandeur.getPhotoWebcam());
+                    model.addAttribute("photoWebcamBase64", photoBase64);
+                }
+                if (demandeur.getSignatureSouris() != null && demandeur.getSignatureSouris().length > 0) {
+                    String signatureBase64 = "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(demandeur.getSignatureSouris());
+                    model.addAttribute("signatureSourisBase64", signatureBase64);
+                }
+            }
 
             return "demande/detail_demande";
 
@@ -688,6 +845,112 @@ public class DemandeController {
         model.addAttribute("q", q);
         model.addAttribute("pageTitle", "Documents modifiables");
         model.addAttribute("contentPage", "demande/documents_modifiables.jsp");
+        return "layout";
+    }
+
+    @GetMapping("/fiche-demande")
+    public String afficherFicheDemande(
+            @RequestParam(required = false) String criterion,
+            @RequestParam(required = false) String searchValue,
+            @RequestParam(required = false) Integer demandeId,
+            Model model) {
+        model.addAttribute("criterion", criterion);
+        model.addAttribute("searchValue", searchValue);
+        model.addAttribute("pageTitle", "Fiche demande");
+
+        if (criterion != null && !criterion.isBlank() && searchValue != null && !searchValue.isBlank()) {
+            java.util.List<DemandeSearchResultDTO> results = rechercherDemandes(criterion, searchValue, false);
+            model.addAttribute("searchResults", results);
+        }
+
+        if (demandeId != null) {
+            Demande demande = demandeRepository.findById(demandeId).orElse(null);
+            if (demande != null) {
+                model.addAttribute("ficheDemande", demande);
+                model.addAttribute("statutDemande",
+                        demande.getStatutDemande() != null ? demande.getStatutDemande().getLibelle() : "INCONNU");
+
+                if (demande.getDemandeur() != null) {
+                    byte[] photo = extraireChampBinaire(demande.getDemandeur(), "getPhotoWebcam");
+                    byte[] signature = extraireChampBinaire(demande.getDemandeur(), "getSignatureSouris");
+
+                    if (photo != null && photo.length > 0) {
+                        model.addAttribute("photoWebcamBase64",
+                                "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(photo));
+                    }
+                    if (signature != null && signature.length > 0) {
+                        model.addAttribute("signatureSourisBase64",
+                                "data:image/png;base64," + Base64.getEncoder().encodeToString(signature));
+                    }
+                }
+            }
+        }
+
+        model.addAttribute("contentPage", "demande/fiche_demande.jsp");
+        return "layout";
+    }
+
+    private byte[] extraireChampBinaire(Object source, String getterName) {
+        try {
+            java.lang.reflect.Method getter = source.getClass().getMethod(getterName);
+            Object value = getter.invoke(source);
+            if (value instanceof byte[] bytes) {
+                return bytes;
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @GetMapping("/fiche-carte-resident")
+    public String afficherFicheCarteResident(
+            @RequestParam(required = false) String criterion,
+            @RequestParam(required = false) String searchValue,
+            @RequestParam(required = false) Integer demandeId,
+            Model model) {
+        model.addAttribute("criterion", criterion);
+        model.addAttribute("searchValue", searchValue);
+        model.addAttribute("pageTitle", "Fiche carte resident");
+
+        if (criterion != null && !criterion.isBlank() && searchValue != null && !searchValue.isBlank()) {
+            java.util.List<DemandeSearchResultDTO> results = rechercherDemandes(criterion, searchValue, true);
+            model.addAttribute("searchResults", results);
+        }
+
+        if (demandeId != null) {
+            Demande demande = demandeRepository.findById(demandeId).orElse(null);
+            if (demande != null) {
+                model.addAttribute("ficheDemande", demande);
+                model.addAttribute("statutDemande",
+                        demande.getStatutDemande() != null ? demande.getStatutDemande().getLibelle() : "INCONNU");
+
+                CarteResident carteLiee = carteResidentRepository.findAll().stream()
+                        .filter(cr -> cr.getDemande() != null && demandeId.equals(cr.getDemande().getId()))
+                        .max(java.util.Comparator.comparing(
+                                (CarteResident cr) -> cr.getDateModification() != null
+                                        ? cr.getDateModification()
+                                        : (cr.getDateEmission() != null ? cr.getDateEmission() : java.time.LocalDateTime.MIN)))
+                        .orElse(null);
+                model.addAttribute("carteResidentLiee", carteLiee);
+
+                if (demande.getDemandeur() != null) {
+                    byte[] photo = extraireChampBinaire(demande.getDemandeur(), "getPhotoWebcam");
+                    byte[] signature = extraireChampBinaire(demande.getDemandeur(), "getSignatureSouris");
+
+                    if (photo != null && photo.length > 0) {
+                        model.addAttribute("photoWebcamBase64",
+                                "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(photo));
+                    }
+                    if (signature != null && signature.length > 0) {
+                        model.addAttribute("signatureSourisBase64",
+                                "data:image/png;base64," + Base64.getEncoder().encodeToString(signature));
+                    }
+                }
+            }
+        }
+
+        model.addAttribute("contentPage", "carte_resident/fiche_carte_resident.jsp");
         return "layout";
     }
 

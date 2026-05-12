@@ -1,16 +1,19 @@
 package com.teamlead.Model;
 
 import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import jakarta.persistence.FetchType;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -52,4 +55,15 @@ public class DocumentScan {
 
     @Column(name = "date_modification")
     private LocalDateTime dateModification;
+
+    @PrePersist
+    @PreUpdate
+    @SuppressWarnings("unused")
+    private void synchroniserDemandeDepuisPiece() {
+        // L'étape upload reste indépendante dans DocumentScan,
+        // mais on garantit la cohérence du rattachement demande/pièce.
+        if (this.pieceAFournir != null && this.pieceAFournir.getDemande() != null) {
+            this.demande = this.pieceAFournir.getDemande();
+        }
+    }
 }

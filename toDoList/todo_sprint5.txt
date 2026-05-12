@@ -3,7 +3,7 @@ SPRINT5 - Gestion du dossier demandeur, photo/signature et fiche PDF
 ROLE :
 Team Lead - ETU 3265
 DEV 1 - ETU 3371
-DEV 2 - ETU xxx
+DEV 2 - ETU 3273
 
 Contexte sprint 5 :
 - On ne touche pas l'application Vue JS, seulement le Spring Boot.

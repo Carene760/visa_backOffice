@@ -19,6 +19,7 @@ public class ValidationErrorDTO {
     private List<String> errors = new ArrayList<>();
     private Integer demandeId;
     private Integer documentScanId;
+    private String redirectUrl;
     
     public ValidationErrorDTO(boolean success, String message) {
         this.success = success;
