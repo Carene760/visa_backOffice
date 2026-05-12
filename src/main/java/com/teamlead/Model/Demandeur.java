@@ -15,6 +15,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -67,17 +68,17 @@ public class Demandeur {
     @Column(name = "date_modification")
     private LocalDateTime dateModification;
 
-    @JdbcTypeCode(SqlTypes.VARBINARY)
-    @Column(name = "photo_webcam", columnDefinition = "bytea")
+    @Lob
+    @Column(name = "photo_webcam")
     private byte[] photoWebcam;
 
-    @JdbcTypeCode(SqlTypes.VARBINARY)
-    @Column(name = "signature_souris", columnDefinition = "bytea")
+    @Lob
+    @Column(name = "signature_souris")
     private byte[] signatureSouris;
 
     @Column(name = "photo_terminee")
-    private Boolean photoTerminee = false;
+    private Boolean photoTerminee = Boolean.FALSE;
 
     @Column(name = "signature_terminee")
-    private Boolean signatureTerminee = false;
+    private Boolean signatureTerminee = Boolean.FALSE;
 }
