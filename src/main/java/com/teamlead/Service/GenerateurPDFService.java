@@ -122,6 +122,89 @@ public class GenerateurPDFService {
     }
 
     /**
+     * Génère une fiche complète de la demande incluant photo et signature si disponibles
+     */
+    public byte[] genererFicheDemande(Integer idDemande) {
+        Demande demande = demandeRepository.findByIdWithRelations(idDemande)
+                .orElseThrow(() -> new IllegalArgumentException("Demande non trouvée: " + idDemande));
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        try {
+            PdfWriter writer = new PdfWriter(baos);
+            PdfDocument pdfDoc = new PdfDocument(writer);
+            Document document = new Document(pdfDoc);
+            document.setMargins(24, 24, 24, 24);
+
+            document.add(creerBlocEnTete(demande));
+
+            Paragraph titre = new Paragraph("FICHE DE DEMANDE")
+                    .setFontSize(16)
+                    .setBold()
+                    .setTextAlignment(TextAlignment.CENTER)
+                    .setMarginBottom(6);
+            document.add(titre);
+
+            // Informations principales
+            document.add(creerSectionTitre("INFORMATIONS DEMANDE"));
+            document.add(creerSectionEtatCivil(demande));
+
+            // Photo & signature
+            if (demande.getDemandeur() != null) {
+                byte[] photo = demande.getDemandeur().getPhotoWebcam();
+                byte[] signature = demande.getDemandeur().getSignatureSouris();
+
+                if (photo != null || signature != null) {
+                    document.add(creerSectionTitre("PHOTO / SIGNATURE"));
+                    Table t = new Table(UnitValue.createPercentArray(new float[] {1,1})).useAllAvailableWidth();
+
+                    if (photo != null) {
+                        Image img = new Image(ImageDataFactory.create(photo)).setAutoScale(true).setMaxWidth(UnitValue.createPercentValue(45));
+                        t.addCell(new Cell().add(new Paragraph("Photo webcam").setBold()).add(img));
+                    } else {
+                        t.addCell(new Cell().add(new Paragraph("Photo webcam").setBold()).add(new Paragraph("(non fournie)")));
+                    }
+
+                    if (signature != null) {
+                        Image sig = new Image(ImageDataFactory.create(signature)).setAutoScale(true).setMaxWidth(UnitValue.createPercentValue(45));
+                        t.addCell(new Cell().add(new Paragraph("Signature souris").setBold()).add(sig));
+                    } else {
+                        t.addCell(new Cell().add(new Paragraph("Signature souris").setBold()).add(new Paragraph("(non fournie)")));
+                    }
+
+                    document.add(t);
+                }
+            }
+
+            // Justificatifs (liste des scans reçus)
+            document.add(creerSectionTitre("DOCUMENTS SCANNÉS"));
+            List<DocumentScan> scans = documentScanRepository.findByIdDemande(idDemande);
+            if (scans != null && !scans.isEmpty()) {
+                Table table = new Table(UnitValue.createPercentArray(new float[] {4,2,2})).useAllAvailableWidth();
+                table.addCell(cellHeader("Fichier"));
+                table.addCell(cellHeader("Pièce"));
+                table.addCell(cellHeader("Date upload"));
+                for (DocumentScan ds : scans) {
+                    table.addCell(cellValue(ds.getNomFichier()));
+                    table.addCell(cellValue(ds.getPieceAFournir() != null && ds.getPieceAFournir().getTypeDocument() != null
+                            ? ds.getPieceAFournir().getTypeDocument().getLibelle() : "-"));
+                    table.addCell(cellValue(ds.getDateUpload() != null ? ds.getDateUpload().format(DATETIME_FORMATTER) : "-"));
+                }
+                document.add(table);
+            } else {
+                document.add(new Paragraph("Aucun document scanné enregistré.").setItalic());
+            }
+
+            document.close();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la génération du PDF de fiche: " + e.getMessage(), e);
+        }
+
+        return baos.toByteArray();
+    }
+
+    /**
      * Section État Civil du récépissé
      */
     private Table creerSectionEtatCivil(Demande demande) {

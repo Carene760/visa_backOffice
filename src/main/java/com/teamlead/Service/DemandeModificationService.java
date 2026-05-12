@@ -14,20 +14,20 @@ import com.teamlead.Exception.ValidationException;
 import com.teamlead.Model.Demande;
 import com.teamlead.Model.PieceAFournir;
 import com.teamlead.Repository.DemandeRepository;
-import com.teamlead.Repository.PieceAFournirRepository;
-import com.teamlead.Repository.TypeDocumentRepository;
 import com.teamlead.Repository.DemandeurRepository;
 import com.teamlead.Repository.PasseportRepository;
-import com.teamlead.Repository.VisaRepository;
+import com.teamlead.Repository.PieceAFournirRepository;
 import com.teamlead.Repository.TypeDemandeRepository;
+import com.teamlead.Repository.TypeDocumentRepository;
 import com.teamlead.Repository.TypeMotifRepository;
+import com.teamlead.Repository.VisaRepository;
 
 /**
  * Service de gestion de la modification des demandes
  * 
  * Règles métier:
- * - Modification autorisée SEULEMENT si statut = DOSSIER_CREE
- * - Après statut supérieur → modification refusée
+ * - Modification autorisée si statut = DOSSIER_CREE ou PHOTO_SIGNATURE_TERMINE
+ * - Statut SCAN_TERMINE et après → modification refusée (dossier verrouillé)
  * - Validation des pièces obligatoires avant modification
  * - Alerte si pièces optionnelles manquantes (n'empêche pas modification)
  */
@@ -76,15 +76,17 @@ public class DemandeModificationService {
                     List.of("La demande n'existe pas en base de données."));
         }
 
-        // Vérifier le statut
-        if (demande.getStatutDemande() == null
-                || !"DOSSIER_CREE".equalsIgnoreCase(demande.getStatutDemande().getLibelle())) {
-            return buildFailure("Modification non autorisée",
-                    List.of("Modification non autorisée après statut " + "'"
-                            + (demande.getStatutDemande() != null
-                                    ? demande.getStatutDemande().getLibelle()
-                                    : "INCONNU") + "'",
-                            "Seules les demandes en statut DOSSIER_CREE peuvent être modifiées."));
+        // Vérifier le statut - autoriser DOSSIER_CREE et PHOTO_SIGNATURE_TERMINE
+        // Refuser SCAN_TERMINE et après (dossier verrouillé)
+        if (demande.getStatutDemande() != null) {
+            String statut = demande.getStatutDemande().getLibelle();
+            List<String> statutsAutorises = List.of("DOSSIER_CREE", "PHOTO_SIGNATURE_TERMINE");
+            
+            if (!statutsAutorises.contains(statut)) {
+                return buildFailure("Modification non autorisée",
+                        List.of("Modification non autorisée après statut '" + statut + "'.",
+                                "Le dossier est verrouillé et ne peut plus être modifié."));
+            }
         }
 
         return new ValidationErrorDTO(true, "Modification autorisée");

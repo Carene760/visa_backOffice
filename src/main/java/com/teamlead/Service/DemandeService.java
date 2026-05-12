@@ -224,28 +224,6 @@ import com.teamlead.Model.Decision;
                     pieceAFournirRepository.save(piece);
                     }}
 
-                    if (Boolean.TRUE.equals(sansDonneesAnterieures) && modeUploadTermine) {
-                        Decision decisionEntity = decisionRepository.findByLibelle("Approuvee")
-                                .orElseThrow(() -> new ValidationException("Erreur système", List.of("Valeur 'Approuve' introuvable dans la table decision")));
-
-                        DecisionDocument dd = new DecisionDocument();
-                        dd.setDemande(demande);
-                        dd.setTypeDecision("MANUAL_REVIEW");
-                        dd.setCriteresAppliques("Demande sans donnees antérieures: pièces auto-marquees, dossier prêt pour traitement.");
-                        dd.setDecisionAutomatique(true);
-                        dd.setDecision(decisionEntity);
-                        dd.setDateDecision(LocalDateTime.now());
-                        decisionDocumentRepository.save(dd);
-
-                        ValidationErrorDTO transition = demandeStatusService.transitionnerVersScanTermine(demande.getId());
-                        if (!transition.isSuccess()) {
-                            throw new ValidationException("Impossible de finaliser le dossier",
-                                transition.getErrors() != null && !transition.getErrors().isEmpty()
-                                    ? transition.getErrors()
-                                    : List.of(transition.getMessage() != null ? transition.getMessage() : "Erreur inconnue"));
-                        }
-                    }
-
                     validation.setDemandeId(demande.getId());
                     return validation;
 

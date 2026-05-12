@@ -99,6 +99,19 @@
             </p>
         </div>
 
+        <div class="accueil-instructions" style="margin-top: 20px; border-left-color: var(--accent-teal);">
+            <h3>Reprendre un dossier</h3>
+            <p>
+                <strong>📷 Photo / Signature</strong><br>
+                Accéder aux dossiers en cours pour compléter la photo webcam ou la signature souris plus tard.
+            </p>
+            <p style="margin-top: 12px;">
+                <a href="/demande/documents-modifiables" style="display:inline-block; padding:10px 14px; background:var(--accent-blue); color:#fff; text-decoration:none; border-radius:4px; font-weight:600;">
+                    Ouvrir les dossiers modifiables
+                </a>
+            </p>
+        </div>
+
         <div class="accueil-separator"></div>
 
         <p class="footer-note">

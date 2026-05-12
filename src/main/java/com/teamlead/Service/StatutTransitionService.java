@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
  * 
  * Statuts disponibles:
  * - DOSSIER_CREE: Initial, dossier créé et complété
+ * - PHOTO_SIGNATURE_TERMINE: Photo webcam et signature souris terminées
  * - SCAN_TERMINE: Après scan des documents
  * - VISA_APPROUVEE: Visa approuvé (final)
  * - REFUSE: Dossier refusé (peut être avant SCAN_TERMINE seulement en Sprint 2)
@@ -73,6 +74,16 @@ public class StatutTransitionService {
             result.addError("Transition non autorisée de " + statutActuel.getLibelle() + 
                           " vers " + nouveauStatut.getLibelle());
             return result;
+        }
+
+        if ("SCAN_TERMINE".equalsIgnoreCase(nouveauStatut.getLibelle())) {
+            if (demande.getDemandeur() == null
+                    || !Boolean.TRUE.equals(demande.getDemandeur().getPhotoTerminee())
+                    || !Boolean.TRUE.equals(demande.getDemandeur().getSignatureTerminee())) {
+                result.setSuccess(false);
+                result.addError("La photo webcam et la signature souris doivent être terminées avant de passer à SCAN_TERMINE");
+                return result;
+            }
         }
         
         // Effectuer la transition
@@ -176,9 +187,13 @@ public class StatutTransitionService {
      * @return true si transition valide, false sinon
      */
     private boolean estTransitionValide(String from, String to) {
-        // DOSSIER_CREE peut aller vers SCAN_TERMINE ou REFUSE
+        // DOSSIER_CREE peut aller vers PHOTO_SIGNATURE_TERMINE ou REFUSE
         if (from.equals("DOSSIER_CREE")) {
-            return to.equals("SCAN_TERMINE") || to.equals("REFUSE");
+            return to.equals("PHOTO_SIGNATURE_TERMINE") || to.equals("REFUSE");
+        }
+
+        if (from.equals("PHOTO_SIGNATURE_TERMINE")) {
+            return to.equals("SCAN_TERMINE");
         }
         
         // SCAN_TERMINE peut aller vers VISA_APPROUVEE
