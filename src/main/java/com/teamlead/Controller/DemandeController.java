@@ -54,6 +54,7 @@ import com.teamlead.Service.DocumentScanService;
 import com.teamlead.Service.DocumentScanValidationService;
 import com.teamlead.Service.DuplicataTransfertService;
 import com.teamlead.Service.GenerateurPDFService;
+import java.util.Base64;
 import com.teamlead.Service.NationaliteService;
 import com.teamlead.Service.PhotoSignatureService;
 import com.teamlead.Service.SituationMatrimonialeService;
@@ -1016,6 +1017,67 @@ public class DemandeController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=recepisse_" + id + ".pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
+
+    /**
+     * Affiche la fiche demande avec barre de recherche et bouton d'export PDF
+     */
+    @GetMapping("/fiche")
+    public String ficheDemande(
+            @RequestParam(required = false) Integer demandeId,
+            Model model) {
+        model.addAttribute("pageTitle", "Fiche demande");
+
+        if (demandeId != null) {
+            try {
+                Demande demande = demandeRepository.findByIdWithRelations(demandeId).orElse(null);
+                if (demande == null) {
+                    model.addAttribute("erreur", "Demande non trouvée");
+                } else {
+                    model.addAttribute("demande", demande);
+
+                    // pièces et scans
+                    List<PieceAFournir> pieces = pieceAFournirRepository.findByDemandeId(demandeId);
+                    model.addAttribute("pieces", pieces);
+                    List<DocumentScan> scans = documentScanService.listerScansPourDemande(demandeId);
+                    model.addAttribute("scans", scans);
+
+                    // historique
+                    List<HistoriqueStatutDemande> historique = historiqueStatutDemandeRepository
+                            .findByDemandeIdOrderByDateChangementAsc(demandeId);
+                    model.addAttribute("historique", historique);
+
+                    // base64 images for JSP preview
+                    if (demande.getDemandeur() != null && demande.getDemandeur().getPhotoWebcam() != null) {
+                        String photoB64 = Base64.getEncoder().encodeToString(demande.getDemandeur().getPhotoWebcam());
+                        model.addAttribute("photoBase64", photoB64);
+                    }
+                    if (demande.getDemandeur() != null && demande.getDemandeur().getSignatureSouris() != null) {
+                        String signB64 = Base64.getEncoder().encodeToString(demande.getDemandeur().getSignatureSouris());
+                        model.addAttribute("signatureBase64", signB64);
+                    }
+                }
+            } catch (Exception e) {
+                model.addAttribute("erreur", "Erreur lors du chargement de la fiche: " + e.getMessage());
+            }
+        }
+
+        model.addAttribute("contentPage", "demande/fiche_demande.jsp");
+        return "layout";
+    }
+
+    /**
+     * Génère et télécharge la fiche demande PDF (incluant photo/signature)
+     */
+    @GetMapping("/{id}/generer-fiche")
+    public ResponseEntity<byte[]> genererFiche(@PathVariable Integer id) {
+        byte[] pdf = generateurPDFService.genererFicheDemande(id);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=fiche_demande_" + id + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
     }
