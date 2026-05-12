@@ -270,6 +270,24 @@
                         Modifier vos demandes
                     </p>
                 </li>
+
+                <li style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2);">
+                    <a href="/demande/fiche-demande" class="sidebar-menu-item">
+                        🧾 Fiche_demande
+                    </a>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 8px 15px 0 15px;">
+                        Recherche et export PDF de la demande
+                    </p>
+                </li>
+
+                <li style="margin-bottom: 5px;">
+                    <a href="/demande/fiche-carte-resident" class="sidebar-menu-item">
+                        🪪 Carte_Resident
+                    </a>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 8px 15px 0 15px;">
+                        Recherche et export PDF de la carte resident
+                    </p>
+                </li>
             </ul>
         </aside>
 

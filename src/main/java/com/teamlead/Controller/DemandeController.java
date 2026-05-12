@@ -1,6 +1,7 @@
 package com.teamlead.Controller;
 
 import java.time.LocalDate;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -467,11 +468,10 @@ public class DemandeController {
      * GET /demande/{idDemande}/modifier
      */
     @GetMapping("/{idDemande}/modifier")
-    public String afficherModification(
+    public String afficherChoixModification(
             @PathVariable Integer idDemande,
             Model model) {
         try {
-            // Vérifier autorisation
             ValidationErrorDTO authCheck = demandeModificationService.verifierAutorisation(idDemande);
             if (!authCheck.isSuccess()) {
                 model.addAttribute("erreur", authCheck.getMessage());
@@ -479,7 +479,40 @@ public class DemandeController {
                 return "demande/modification_non_autorisee";
             }
 
-            // Analyser la complétude
+            Demande demande = demandeRepository.findById(idDemande)
+                    .orElseThrow(() -> new ValidationException("Demande introuvable"));
+
+            ValidationErrorDTO completion = demandeModificationService.analyserCompletion(idDemande);
+
+            model.addAttribute("demande", demande);
+            model.addAttribute("demandeId", idDemande);
+            model.addAttribute("completion", completion);
+            model.addAttribute("pageTitle", "Choix de reprise du dossier");
+            model.addAttribute("contentPage", "demande/modifier_dossier.jsp");
+            return "layout";
+        } catch (Exception e) {
+            model.addAttribute("erreur", "Une erreur est survenue");
+            model.addAttribute("erreurs", List.of(e.getMessage()));
+            return "demande/modification_non_autorisee";
+        }
+    }
+
+    /**
+     * Affiche le formulaire de modification complet du dossier.
+     * GET /demande/{idDemande}/modifier/formulaire
+     */
+    @GetMapping("/{idDemande}/modifier/formulaire")
+    public String afficherFormulaireModification(
+            @PathVariable Integer idDemande,
+            Model model) {
+        try {
+            ValidationErrorDTO authCheck = demandeModificationService.verifierAutorisation(idDemande);
+            if (!authCheck.isSuccess()) {
+                model.addAttribute("erreur", authCheck.getMessage());
+                model.addAttribute("erreurs", authCheck.getErrors());
+                return "demande/modification_non_autorisee";
+            }
+
             ValidationErrorDTO completion = demandeModificationService.analyserCompletion(idDemande);
             model.addAttribute("demandeId", idDemande);
             model.addAttribute("completion", completion);
@@ -532,16 +565,23 @@ public class DemandeController {
             demandeDTO.setPiecesPresentes(piecesPresentes);
             model.addAttribute("demandeDTO", demandeDTO);
 
-            // Charger les données de référence
             chargerDonneesReference(model);
-
             return "demande/modification";
-
         } catch (Exception e) {
             model.addAttribute("erreur", "Une erreur est survenue");
             model.addAttribute("erreurs", List.of(e.getMessage()));
             return "demande/modification_non_autorisee";
         }
+    }
+
+    @GetMapping("/{idDemande}/photo-signature-capture")
+    public String ouvrirEtapePhotoSignature(@PathVariable Integer idDemande, Model model) {
+        return afficherDetailDemande(idDemande, model);
+    }
+
+    @GetMapping("/{idDemande}/upload-scanner")
+    public String ouvrirEtapeUploadScanner(@PathVariable Integer idDemande, Model model) {
+        return afficherDetailDemande(idDemande, model);
     }
 
     /**
@@ -805,6 +845,112 @@ public class DemandeController {
         model.addAttribute("q", q);
         model.addAttribute("pageTitle", "Documents modifiables");
         model.addAttribute("contentPage", "demande/documents_modifiables.jsp");
+        return "layout";
+    }
+
+    @GetMapping("/fiche-demande")
+    public String afficherFicheDemande(
+            @RequestParam(required = false) String criterion,
+            @RequestParam(required = false) String searchValue,
+            @RequestParam(required = false) Integer demandeId,
+            Model model) {
+        model.addAttribute("criterion", criterion);
+        model.addAttribute("searchValue", searchValue);
+        model.addAttribute("pageTitle", "Fiche demande");
+
+        if (criterion != null && !criterion.isBlank() && searchValue != null && !searchValue.isBlank()) {
+            java.util.List<DemandeSearchResultDTO> results = rechercherDemandes(criterion, searchValue, false);
+            model.addAttribute("searchResults", results);
+        }
+
+        if (demandeId != null) {
+            Demande demande = demandeRepository.findById(demandeId).orElse(null);
+            if (demande != null) {
+                model.addAttribute("ficheDemande", demande);
+                model.addAttribute("statutDemande",
+                        demande.getStatutDemande() != null ? demande.getStatutDemande().getLibelle() : "INCONNU");
+
+                if (demande.getDemandeur() != null) {
+                    byte[] photo = extraireChampBinaire(demande.getDemandeur(), "getPhotoWebcam");
+                    byte[] signature = extraireChampBinaire(demande.getDemandeur(), "getSignatureSouris");
+
+                    if (photo != null && photo.length > 0) {
+                        model.addAttribute("photoWebcamBase64",
+                                "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(photo));
+                    }
+                    if (signature != null && signature.length > 0) {
+                        model.addAttribute("signatureSourisBase64",
+                                "data:image/png;base64," + Base64.getEncoder().encodeToString(signature));
+                    }
+                }
+            }
+        }
+
+        model.addAttribute("contentPage", "demande/fiche_demande.jsp");
+        return "layout";
+    }
+
+    private byte[] extraireChampBinaire(Object source, String getterName) {
+        try {
+            java.lang.reflect.Method getter = source.getClass().getMethod(getterName);
+            Object value = getter.invoke(source);
+            if (value instanceof byte[] bytes) {
+                return bytes;
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @GetMapping("/fiche-carte-resident")
+    public String afficherFicheCarteResident(
+            @RequestParam(required = false) String criterion,
+            @RequestParam(required = false) String searchValue,
+            @RequestParam(required = false) Integer demandeId,
+            Model model) {
+        model.addAttribute("criterion", criterion);
+        model.addAttribute("searchValue", searchValue);
+        model.addAttribute("pageTitle", "Fiche carte resident");
+
+        if (criterion != null && !criterion.isBlank() && searchValue != null && !searchValue.isBlank()) {
+            java.util.List<DemandeSearchResultDTO> results = rechercherDemandes(criterion, searchValue, true);
+            model.addAttribute("searchResults", results);
+        }
+
+        if (demandeId != null) {
+            Demande demande = demandeRepository.findById(demandeId).orElse(null);
+            if (demande != null) {
+                model.addAttribute("ficheDemande", demande);
+                model.addAttribute("statutDemande",
+                        demande.getStatutDemande() != null ? demande.getStatutDemande().getLibelle() : "INCONNU");
+
+                CarteResident carteLiee = carteResidentRepository.findAll().stream()
+                        .filter(cr -> cr.getDemande() != null && demandeId.equals(cr.getDemande().getId()))
+                        .max(java.util.Comparator.comparing(
+                                (CarteResident cr) -> cr.getDateModification() != null
+                                        ? cr.getDateModification()
+                                        : (cr.getDateEmission() != null ? cr.getDateEmission() : java.time.LocalDateTime.MIN)))
+                        .orElse(null);
+                model.addAttribute("carteResidentLiee", carteLiee);
+
+                if (demande.getDemandeur() != null) {
+                    byte[] photo = extraireChampBinaire(demande.getDemandeur(), "getPhotoWebcam");
+                    byte[] signature = extraireChampBinaire(demande.getDemandeur(), "getSignatureSouris");
+
+                    if (photo != null && photo.length > 0) {
+                        model.addAttribute("photoWebcamBase64",
+                                "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(photo));
+                    }
+                    if (signature != null && signature.length > 0) {
+                        model.addAttribute("signatureSourisBase64",
+                                "data:image/png;base64," + Base64.getEncoder().encodeToString(signature));
+                    }
+                }
+            }
+        }
+
+        model.addAttribute("contentPage", "carte_resident/fiche_carte_resident.jsp");
         return "layout";
     }
 
