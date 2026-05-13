@@ -54,6 +54,8 @@ import com.teamlead.Service.DocumentScanService;
 import com.teamlead.Service.DocumentScanValidationService;
 import com.teamlead.Service.DuplicataTransfertService;
 import com.teamlead.Service.GenerateurPDFService;
+import com.teamlead.Service.CarteResidentService;
+import java.util.Base64;
 import java.util.Base64;
 import com.teamlead.Service.NationaliteService;
 import com.teamlead.Service.PhotoSignatureService;
@@ -575,16 +577,6 @@ public class DemandeController {
             model.addAttribute("erreurs", List.of(e.getMessage()));
             return "demande/modification_non_autorisee";
         }
-    }
-
-    @GetMapping("/{idDemande}/photo-signature-capture")
-    public String ouvrirEtapePhotoSignature(@PathVariable Integer idDemande, Model model) {
-        return afficherDetailDemande(idDemande, model);
-    }
-
-    @GetMapping("/{idDemande}/upload-scanner")
-    public String ouvrirEtapeUploadScanner(@PathVariable Integer idDemande, Model model) {
-        return afficherDetailDemande(idDemande, model);
     }
 
     /**

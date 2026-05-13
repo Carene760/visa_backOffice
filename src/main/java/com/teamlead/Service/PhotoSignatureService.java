@@ -70,7 +70,7 @@ public class PhotoSignatureService {
         boolean photoTerminee = Boolean.TRUE.equals(demandeur.getPhotoTerminee());
         boolean signatureTerminee = Boolean.TRUE.equals(demandeur.getSignatureTerminee());
         if (photoTerminee && signatureTerminee) {
-            ValidationErrorDTO transition = demandeStatusService.transitionnerVersPhotoSignatureTermine(demandeId);
+            ValidationErrorDTO transition = demandeStatusService.transitionnerVersPhotoSignatureTerminee(demandeId);
             if (!transition.isSuccess()) {
                 return transition;
             }
