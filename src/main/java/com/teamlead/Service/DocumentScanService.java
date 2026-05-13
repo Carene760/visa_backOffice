@@ -242,9 +242,9 @@ public class DocumentScanService {
     }
 
     /**
-     * Finalise automatiquement le dossier après upload pour les demandes sans données antérieures en mode "uploader".
-     * L'upload reste possible, mais la finalisation vers SCAN_TERMINE est bloquée tant que
-     * l'étape photo/signature n'est pas terminée.
+     * Finalise automatiquement le dossier après upload/photo-signature pour les demandes sans données antérieures en mode "uploader".
+     * Accepte tout ordre: upload d'abord OU photo/signature d'abord.
+     * La transition vers SCAN_TERMINE se déclenche dès que photos + signatures + uploads obligatoires sont tous présents.
      */
     private void finaliserSiDossierCompletEtEnModeUpload(Demande demande) {
         if (demande == null || !Boolean.TRUE.equals(demande.getSansDonneesAnterieures())) {
@@ -257,10 +257,11 @@ public class DocumentScanService {
             return;
         }
 
-        // Bloquer uniquement la finalisation tant que photo/signature n'est pas terminée.
-        // L'upload des fichiers reste autorisé.
+        // Accepter DOSSIER_CREE OU PHOTO_SIGNATURE_TERMINE - peu importe l'ordre
+        // Dès que photos + signatures + uploads sont tous prêts -> SCAN_TERMINE
         if (demande.getStatutDemande() == null
-                || !"PHOTO_SIGNATURE_TERMINE".equalsIgnoreCase(demande.getStatutDemande().getLibelle())) {
+                || (!("DOSSIER_CREE".equalsIgnoreCase(demande.getStatutDemande().getLibelle())
+                || "PHOTO_SIGNATURE_TERMINE".equalsIgnoreCase(demande.getStatutDemande().getLibelle())))) {
             return;
         }
 

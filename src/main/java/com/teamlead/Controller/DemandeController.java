@@ -39,6 +39,7 @@ import com.teamlead.Model.TypeEvenement;
 import com.teamlead.Model.Visa;
 import com.teamlead.Repository.CarteResidentRepository;
 import com.teamlead.Repository.DemandeRepository;
+import com.teamlead.Repository.DocumentSignatureRepository;
 import com.teamlead.Repository.HistoriqueStatutDemandeRepository;
 import com.teamlead.Repository.JournalActiviteRepository;
 import com.teamlead.Repository.MotifTransfertRepository;
@@ -85,6 +86,9 @@ public class DemandeController {
 
     @Autowired
     private DemandeRepository demandeRepository;
+
+    @Autowired
+    private DocumentSignatureRepository documentSignatureRepository;
 
     @Autowired
     private PieceAFournirRepository pieceAFournirRepository;
@@ -384,8 +388,8 @@ public class DemandeController {
 
             model.addAttribute("demandeId", idDemande);
             model.addAttribute("pageTitle", "Capture photo et signature");
-            model.addAttribute("photoTerminee", demandeur != null && Boolean.TRUE.equals(demandeur.getPhotoTerminee()));
-            model.addAttribute("signatureTerminee", demandeur != null && Boolean.TRUE.equals(demandeur.getSignatureTerminee()));
+            model.addAttribute("photoTerminee", documentSignatureRepository.existsPhotoWebcam(idDemande));
+            model.addAttribute("signatureTerminee", documentSignatureRepository.existsSignatureSouris(idDemande));
             model.addAttribute("demandeurNom", demandeur != null ? demandeur.getNom() : null);
             model.addAttribute("demandeurPrenom", demandeur != null ? demandeur.getPrenom() : null);
             model.addAttribute("contentPage", "demande/photo_signature_capture.jsp");
@@ -703,16 +707,18 @@ public class DemandeController {
             model.addAttribute("completion", completion);
 
             // Convertir les images webcam/signature en base64 pour affichage
-            Demandeur demandeur = demande.getDemandeur();
-            if (demandeur != null) {
-                if (demandeur.getPhotoWebcam() != null && demandeur.getPhotoWebcam().length > 0) {
-                    String photoBase64 = "data:image/jpeg;base64," + java.util.Base64.getEncoder().encodeToString(demandeur.getPhotoWebcam());
-                    model.addAttribute("photoWebcamBase64", photoBase64);
-                }
-                if (demandeur.getSignatureSouris() != null && demandeur.getSignatureSouris().length > 0) {
-                    String signatureBase64 = "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(demandeur.getSignatureSouris());
-                    model.addAttribute("signatureSourisBase64", signatureBase64);
-                }
+            var photoOpt = documentSignatureRepository.findPhotoWebcamByDemandeId(idDemande);
+            if (photoOpt.isPresent()) {
+                byte[] photo = photoOpt.get().getContenu();
+                String photoBase64 = "data:image/jpeg;base64," + java.util.Base64.getEncoder().encodeToString(photo);
+                model.addAttribute("photoWebcamBase64", photoBase64);
+            }
+            
+            var signatureOpt = documentSignatureRepository.findSignatureSourisByDemandeId(idDemande);
+            if (signatureOpt.isPresent()) {
+                byte[] signature = signatureOpt.get().getContenu();
+                String signatureBase64 = "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(signature);
+                model.addAttribute("signatureSourisBase64", signatureBase64);
             }
 
             return "demande/detail_demande";
@@ -865,37 +871,24 @@ public class DemandeController {
                 model.addAttribute("statutDemande",
                         demande.getStatutDemande() != null ? demande.getStatutDemande().getLibelle() : "INCONNU");
 
-                if (demande.getDemandeur() != null) {
-                    byte[] photo = extraireChampBinaire(demande.getDemandeur(), "getPhotoWebcam");
-                    byte[] signature = extraireChampBinaire(demande.getDemandeur(), "getSignatureSouris");
-
-                    if (photo != null && photo.length > 0) {
-                        model.addAttribute("photoWebcamBase64",
-                                "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(photo));
-                    }
-                    if (signature != null && signature.length > 0) {
-                        model.addAttribute("signatureSourisBase64",
-                                "data:image/png;base64," + Base64.getEncoder().encodeToString(signature));
-                    }
+                var photoOpt = documentSignatureRepository.findPhotoWebcamByDemandeId(demandeId);
+                if (photoOpt.isPresent()) {
+                    byte[] photo = photoOpt.get().getContenu();
+                    model.addAttribute("photoWebcamBase64",
+                            "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(photo));
+                }
+                
+                var signatureOpt = documentSignatureRepository.findSignatureSourisByDemandeId(demandeId);
+                if (signatureOpt.isPresent()) {
+                    byte[] signature = signatureOpt.get().getContenu();
+                    model.addAttribute("signatureSourisBase64",
+                            "data:image/png;base64," + Base64.getEncoder().encodeToString(signature));
                 }
             }
         }
 
         model.addAttribute("contentPage", "demande/fiche_demande.jsp");
         return "layout";
-    }
-
-    private byte[] extraireChampBinaire(Object source, String getterName) {
-        try {
-            java.lang.reflect.Method getter = source.getClass().getMethod(getterName);
-            Object value = getter.invoke(source);
-            if (value instanceof byte[] bytes) {
-                return bytes;
-            }
-            return null;
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     @GetMapping("/fiche-carte-resident")
@@ -929,18 +922,18 @@ public class DemandeController {
                         .orElse(null);
                 model.addAttribute("carteResidentLiee", carteLiee);
 
-                if (demande.getDemandeur() != null) {
-                    byte[] photo = extraireChampBinaire(demande.getDemandeur(), "getPhotoWebcam");
-                    byte[] signature = extraireChampBinaire(demande.getDemandeur(), "getSignatureSouris");
-
-                    if (photo != null && photo.length > 0) {
-                        model.addAttribute("photoWebcamBase64",
-                                "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(photo));
-                    }
-                    if (signature != null && signature.length > 0) {
-                        model.addAttribute("signatureSourisBase64",
-                                "data:image/png;base64," + Base64.getEncoder().encodeToString(signature));
-                    }
+                var photoOpt = documentSignatureRepository.findPhotoWebcamByDemandeId(demandeId);
+                if (photoOpt.isPresent()) {
+                    byte[] photo = photoOpt.get().getContenu();
+                    model.addAttribute("photoWebcamBase64",
+                            "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(photo));
+                }
+                
+                var signatureOpt = documentSignatureRepository.findSignatureSourisByDemandeId(demandeId);
+                if (signatureOpt.isPresent()) {
+                    byte[] signature = signatureOpt.get().getContenu();
+                    model.addAttribute("signatureSourisBase64",
+                            "data:image/png;base64," + Base64.getEncoder().encodeToString(signature));
                 }
             }
         }
@@ -1044,12 +1037,17 @@ public class DemandeController {
                     model.addAttribute("historique", historique);
 
                     // base64 images for JSP preview
-                    if (demande.getDemandeur() != null && demande.getDemandeur().getPhotoWebcam() != null) {
-                        String photoB64 = Base64.getEncoder().encodeToString(demande.getDemandeur().getPhotoWebcam());
+                    var photoOpt = documentSignatureRepository.findPhotoWebcamByDemandeId(demandeId);
+                    if (photoOpt.isPresent()) {
+                        byte[] photoBytes = photoOpt.get().getContenu();
+                        String photoB64 = Base64.getEncoder().encodeToString(photoBytes);
                         model.addAttribute("photoBase64", photoB64);
                     }
-                    if (demande.getDemandeur() != null && demande.getDemandeur().getSignatureSouris() != null) {
-                        String signB64 = Base64.getEncoder().encodeToString(demande.getDemandeur().getSignatureSouris());
+                    
+                    var signatureOpt = documentSignatureRepository.findSignatureSourisByDemandeId(demandeId);
+                    if (signatureOpt.isPresent()) {
+                        byte[] signatureBytes = signatureOpt.get().getContenu();
+                        String signB64 = Base64.getEncoder().encodeToString(signatureBytes);
                         model.addAttribute("signatureBase64", signB64);
                     }
                 }
@@ -1146,11 +1144,19 @@ public class DemandeController {
                     model.addAttribute("carte", carte);
                     Demande demande = carte.getDemande();
                     model.addAttribute("demande", demande);
-                    if (demande != null && demande.getDemandeur() != null && demande.getDemandeur().getPhotoWebcam() != null) {
-                        model.addAttribute("photoBase64", java.util.Base64.getEncoder().encodeToString(demande.getDemandeur().getPhotoWebcam()));
-                    }
-                    if (demande != null && demande.getDemandeur() != null && demande.getDemandeur().getSignatureSouris() != null) {
-                        model.addAttribute("signatureBase64", java.util.Base64.getEncoder().encodeToString(demande.getDemandeur().getSignatureSouris()));
+                    
+                    if (demande != null) {
+                        var photoOpt = documentSignatureRepository.findPhotoWebcamByDemandeId(demande.getId());
+                        if (photoOpt.isPresent()) {
+                            byte[] photo = photoOpt.get().getContenu();
+                            model.addAttribute("photoBase64", java.util.Base64.getEncoder().encodeToString(photo));
+                        }
+                        
+                        var signatureOpt = documentSignatureRepository.findSignatureSourisByDemandeId(demande.getId());
+                        if (signatureOpt.isPresent()) {
+                            byte[] signature = signatureOpt.get().getContenu();
+                            model.addAttribute("signatureBase64", java.util.Base64.getEncoder().encodeToString(signature));
+                        }
                     }
                 }
             } catch (Exception e) {

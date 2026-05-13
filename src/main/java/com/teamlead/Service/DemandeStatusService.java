@@ -15,6 +15,7 @@ import com.teamlead.Model.JournalActivite;
 import com.teamlead.Model.StatutDemande;
 import com.teamlead.Model.TypeEvenement;
 import com.teamlead.Repository.DemandeRepository;
+import com.teamlead.Repository.DocumentSignatureRepository;
 import com.teamlead.Repository.HistoriqueStatutDemandeRepository;
 import com.teamlead.Repository.JournalActiviteRepository;
 import com.teamlead.Repository.StatutDemandeRepository;
@@ -37,6 +38,9 @@ public class DemandeStatusService {
     
     @Autowired
     private DocumentScanValidationService documentScanValidationService;
+    
+    @Autowired
+    private DocumentSignatureRepository documentSignatureRepository;
     
     @Autowired
     private TypeEvenementRepository typeEvenementRepository;
@@ -117,8 +121,10 @@ public class DemandeStatusService {
     }
 
     /**
-     * Transition d'une demande de DOSSIER_CREE à SCAN_TERMINE
-     * Validation: Tous les documents obligatoires doivent avoir au moins 1 scan
+     * Transition d'une demande vers SCAN_TERMINE
+     * Accepte l'appel de n'importe quel statut (DOSSIER_CREE ou PHOTO_SIGNATURE_TERMINE)
+     * Validation: Photos + signatures DOIVENT exister + Tous les documents obligatoires scannés
+     * Permet l'ordre flexible: upload d'abord OU photo/signature d'abord, peu importe l'ordre
      */
     @Transactional
     public ValidationErrorDTO transitionnerVersScanTermine(Integer idDemande) {
@@ -132,21 +138,38 @@ public class DemandeStatusService {
             if (statutActuel != null && "SCAN_TERMINE".equalsIgnoreCase(statutActuel.getLibelle())) {
                 return new ValidationErrorDTO(true, "La demande est déjà au statut SCAN_TERMINE");
             }
-            if (statutActuel == null || !"PHOTO_SIGNATURE_TERMINE".equalsIgnoreCase(statutActuel.getLibelle())) {
+            if (statutActuel == null || (!("DOSSIER_CREE".equalsIgnoreCase(statutActuel.getLibelle()) 
+                    || "PHOTO_SIGNATURE_TERMINE".equalsIgnoreCase(statutActuel.getLibelle())))) {
                 return new ValidationErrorDTO(false,
-                        "Erreur: Le statut actuel n'est pas PHOTO_SIGNATURE_TERMINE. Transition impossible.");
+                        "Erreur: Le statut actuel ne permet pas la transition vers SCAN_TERMINE.");
             }
 
-            if (demande.getDemandeur() == null || !Boolean.TRUE.equals(demande.getDemandeur().getPhotoTerminee())
-                    || !Boolean.TRUE.equals(demande.getDemandeur().getSignatureTerminee())) {
-                return new ValidationErrorDTO(false,
-                        "Erreur: La photo webcam et la signature souris doivent être terminées avant la finalisation.");
+            // Vérifier photos et signatures - messages spécifiques
+            StringBuilder erreurs = new StringBuilder();
+            
+            if (!documentSignatureRepository.existsPhotoWebcam(demande.getId())) {
+                erreurs.append("Photo manquante. ");
+            }
+            if (!documentSignatureRepository.existsSignatureSouris(demande.getId())) {
+                erreurs.append("Signature manquante. ");
+            }
+            
+            if (erreurs.length() > 0) {
+                return new ValidationErrorDTO(false, "Erreur: " + erreurs.toString().trim());
             }
 
-            // Valider que tous les obligatoires sont scannés
-            String validationError = documentScanValidationService.validerAvantTransitionScanTermine(idDemande);
-            if (!validationError.isEmpty()) {
-                return new ValidationErrorDTO(false, validationError);
+            // Valider les uploads obligatoires SEULEMENT si c'est "AVEC données antérieures"
+            // Logique: 
+            // - Si sansDonneesAnterieures = TRUE -> pas de vérif uploads (optionnels)
+            // - Si sansDonneesAnterieures = FALSE/NULL -> vérif uploads (obligatoires)
+            boolean isSansDonneesAnterieures = Boolean.TRUE.equals(demande.getSansDonneesAnterieures());
+            
+            if (!isSansDonneesAnterieures) {
+                // AVEC données antérieures -> uploads obligatoires
+                String validationError = documentScanValidationService.validerAvantTransitionScanTermine(idDemande);
+                if (!validationError.isEmpty()) {
+                    return new ValidationErrorDTO(false, validationError);
+                }
             }
 
             // Charger le nouveau statut
@@ -200,12 +223,9 @@ public class DemandeStatusService {
             StatutDemande statutCible;
             if ("photo-signature".equals(etapeNormalisee)) {
                 statutCible = obtenirOuCreerStatut("DOSSIER_CREE");
-                if (demande.getDemandeur() != null) {
-                    demande.getDemandeur().setPhotoTerminee(Boolean.FALSE);
-                    demande.getDemandeur().setSignatureTerminee(Boolean.FALSE);
-                    demande.getDemandeur().setPhotoWebcam(null);
-                    demande.getDemandeur().setSignatureSouris(null);
-                }
+                // Supprimer les documents photo/signature de la table document_signature
+                documentSignatureRepository.deleteByDemandeIdAndTypeDocument(demande.getId(), "PHOTO_WEBCAM");
+                documentSignatureRepository.deleteByDemandeIdAndTypeDocument(demande.getId(), "SIGNATURE_SOURIS");
             } else if ("upload".equals(etapeNormalisee)) {
                 statutCible = obtenirOuCreerStatut("PHOTO_SIGNATURE_TERMINE");
             } else {

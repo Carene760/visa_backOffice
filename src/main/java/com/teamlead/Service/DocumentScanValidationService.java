@@ -103,15 +103,17 @@ public class DocumentScanValidationService {
         String statutCourant = demande.getStatutDemande() != null
                 ? demande.getStatutDemande().getLibelle()
                 : "INCONNU";
-        if (!"PHOTO_SIGNATURE_TERMINE".equalsIgnoreCase(statutCourant)) {
-            return "Erreur: Transition vers SCAN_TERMINE impossible tant que l'etape photo/signature n'est pas terminee. "
-                    + "Statut actuel: " + statutCourant + ".";
+        
+        // Accepter DOSSIER_CREE ou PHOTO_SIGNATURE_TERMINE - peu importe l'ordre
+        if (!("DOSSIER_CREE".equalsIgnoreCase(statutCourant) 
+                || "PHOTO_SIGNATURE_TERMINE".equalsIgnoreCase(statutCourant))) {
+            return "Erreur: Transition vers SCAN_TERMINE impossible. Statut actuel: " + statutCourant + ".";
         }
 
         List<String> manquants = verifierTousLesObligatoiresScannes(idDemande);
 
         if (!manquants.isEmpty()) {
-            return "Erreur: Documents obligatoires manquants: " + String.join(", ", manquants);
+            return "Dossier(s) à fournir manquant(s): " + String.join(", ", manquants);
         }
 
         return "";

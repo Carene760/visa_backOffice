@@ -34,6 +34,9 @@ public class StatutTransitionService {
     @Autowired
     private StatutDemandeRepository statutDemandeRepository;
 
+    @Autowired
+    private DocumentSignatureRepository documentSignatureRepository;
+
     /**
      * Transition une demande vers un nouveau statut
      * Valide la transition et crée l'historique
@@ -77,9 +80,8 @@ public class StatutTransitionService {
         }
 
         if ("SCAN_TERMINE".equalsIgnoreCase(nouveauStatut.getLibelle())) {
-            if (demande.getDemandeur() == null
-                    || !Boolean.TRUE.equals(demande.getDemandeur().getPhotoTerminee())
-                    || !Boolean.TRUE.equals(demande.getDemandeur().getSignatureTerminee())) {
+            if (!documentSignatureRepository.existsPhotoWebcam(demande.getId())
+                    || !documentSignatureRepository.existsSignatureSouris(demande.getId())) {
                 result.setSuccess(false);
                 result.addError("La photo webcam et la signature souris doivent être terminées avant de passer à SCAN_TERMINE");
                 return result;

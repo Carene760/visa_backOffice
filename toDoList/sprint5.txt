@@ -18,7 +18,14 @@ Pour la sprint5 la concept comme celle-ci:
     le demandeur, avec photo/signature, ce sera une fiche , et on peut l'exporter pdf 
 
  
-
+et tu vois , il y avait une logique ou c'est quand donnee sans anterieur ,
+  au lieu de soumettre le demande , il y a 2 bouton de choix,
+  soit uploader ou uploader termine 
+  on va changer ca 
+    le logique sera comme ca meme avec_donnees_anterieur ou sans_donnee_anterieur,
+     le bouton reste le meme: soumetre la demande et
+     dans modifiables  si c'est sans_donnee_anterieur : le bouton finaliser le scan ne verifie pas les fichier upload seulement la photo et la signature 
+     mais si c'est avec avecDonneesAnterieures on verifie tout les fichiers a uploader et la photo et la signature 
 
 
 atao ze possible maka sary @webcam 

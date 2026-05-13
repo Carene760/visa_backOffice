@@ -541,10 +541,6 @@
         </div>
 
         <div class="form-actions">
-            <div id="mode-buttons" style="display: none; gap: 12px;">
-                <button type="submit" class="btn-submit" name="mode_sans_donnees_anterieures" value="upload_termine" id="btn-upload-termine">Upload terminé</button>
-                <button type="submit" class="btn-submit" name="mode_sans_donnees_anterieures" value="uploader" id="btn-uploader">Uploader</button>
-            </div>
             <button type="submit" class="btn-submit" id="btn-default">Soumettre la Demande</button>
             <button type="reset" class="btn-reset" id="btn-reset">Réinitialiser</button>
         </div>
@@ -680,18 +676,6 @@
         bindSelectAll();
         // Auto-select all documents when 'sans données antérieures' is checked
         const sansCheckbox = document.getElementById('sansdonneesAnterieures');
-        function toggleModeButtons() {
-            const modeContainer = document.getElementById('mode-buttons');
-            const defaultBtn = document.getElementById('btn-default');
-            if (!modeContainer || !defaultBtn) return;
-            if (sansCheckbox && sansCheckbox.checked) {
-                modeContainer.style.display = 'flex';
-                defaultBtn.style.display = 'none';
-            } else {
-                modeContainer.style.display = 'none';
-                defaultBtn.style.display = 'inline-block';
-            }
-        }
 
         if (sansCheckbox) {
             sansCheckbox.addEventListener('change', function () {
@@ -709,10 +693,8 @@
                         specificContainer.querySelectorAll('input[name="documents"]').forEach(cb => { cb.checked = false; checkedDocuments.delete(cb.value); });
                     }
                 }
-                toggleModeButtons();
             });
             // apply initial state if checked on load
-            toggleModeButtons();
             if (sansCheckbox.checked) {
                 sansCheckbox.dispatchEvent(new Event('change'));
             }
@@ -722,7 +704,7 @@
                 theForm.addEventListener('reset', function () {
                     // timeout to allow native reset to complete
                     setTimeout(() => {
-                        toggleModeButtons();
+                        // Mode buttons removed - no need to hide
                     }, 0);
                 });
             }

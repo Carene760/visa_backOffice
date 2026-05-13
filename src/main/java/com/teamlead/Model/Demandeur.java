@@ -67,18 +67,4 @@ public class Demandeur {
 
     @Column(name = "date_modification")
     private LocalDateTime dateModification;
-
-    @Lob
-    @Column(name = "photo_webcam")
-    private byte[] photoWebcam;
-
-    @Lob
-    @Column(name = "signature_souris")
-    private byte[] signatureSouris;
-
-    @Column(name = "photo_terminee")
-    private Boolean photoTerminee = Boolean.FALSE;
-
-    @Column(name = "signature_terminee")
-    private Boolean signatureTerminee = Boolean.FALSE;
 }
