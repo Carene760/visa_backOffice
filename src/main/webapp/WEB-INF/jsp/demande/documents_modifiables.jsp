@@ -15,6 +15,7 @@
     .search button, .action { border: none; border-radius: 8px; padding: 10px 14px; text-decoration: none; cursor: pointer; }
     .search button { background: #2563eb; color: #fff; }
     .action { background: #0f766e; color: #fff; display: inline-block; }
+    .action.finaliser { background: #16a34a; margin-left: 8px; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; text-align: left; }
     th { background: #f8fafc; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
@@ -22,6 +23,7 @@
     .badge.pending { background: #fef3c7; color: #92400e; }
     .badge.ready { background: #dcfce7; color: #166534; }
     .empty { color: #6b7280; font-style: italic; padding: 18px 0; }
+    .action-cell { white-space: nowrap; }
 </style>
 
 <div class="documents-panel">
@@ -59,8 +61,9 @@
                                 ${demande.statutDemande.libelle}
                             </span>
                         </td>
-                        <td>
+                        <td class="action-cell">
                             <a class="action" href="/demande/${demande.id}/detail">✎ Modifier</a>
+                            <button type="button" class="action finaliser" onclick="finalisierScan('${demande.id}')">✓ Finaliser le scan</button>
                         </td>
                     </tr>
                 </c:forEach>
@@ -72,3 +75,34 @@
         <div class="empty">Aucune demande modifiable trouvée.</div>
     </c:if>
 </div>
+
+<script>
+function finalisierScan(demandeId) {
+    // Confirmer l'action
+    if (!confirm('Êtes-vous sûr de vouloir finaliser le scan du dossier #' + demandeId + ' ?')) {
+        return;
+    }
+    
+    // Appel API
+    fetch('/demande/' + demandeId + '/scan/terminer', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✓ Dossier finalisé avec succès !');
+            location.reload(); // Recharger la page
+        } else {
+            // Afficher le message d'erreur spécifique
+            alert('❌ Erreur: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('❌ Erreur réseau: ' + error);
+    });
+}
+</script>

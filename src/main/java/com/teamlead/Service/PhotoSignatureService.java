@@ -12,8 +12,10 @@ import com.teamlead.DTO.ValidationErrorDTO;
 import com.teamlead.Exception.ValidationException;
 import com.teamlead.Model.Demande;
 import com.teamlead.Model.Demandeur;
+import com.teamlead.Model.DocumentSignature;
 import com.teamlead.Repository.DemandeRepository;
 import com.teamlead.Repository.DemandeurRepository;
+import com.teamlead.Repository.DocumentSignatureRepository;
 
 @Service
 public class PhotoSignatureService {
@@ -25,19 +27,22 @@ public class PhotoSignatureService {
     private DemandeurRepository demandeurRepository;
 
     @Autowired
+    private DocumentSignatureRepository documentSignatureRepository;
+
+    @Autowired
     private DemandeStatusService demandeStatusService;
 
     @Transactional
     public ValidationErrorDTO enregistrerPhotoWebcam(Integer demandeId, String photoBase64) {
-        return enregistrerImageDemandeur(demandeId, photoBase64, true);
+        return enregistrerImageDemandeur(demandeId, photoBase64, "PHOTO_WEBCAM");
     }
 
     @Transactional
     public ValidationErrorDTO enregistrerSignatureSouris(Integer demandeId, String signatureBase64) {
-        return enregistrerImageDemandeur(demandeId, signatureBase64, false);
+        return enregistrerImageDemandeur(demandeId, signatureBase64, "SIGNATURE_SOURIS");
     }
 
-    private ValidationErrorDTO enregistrerImageDemandeur(Integer demandeId, String base64Value, boolean photo) {
+    private ValidationErrorDTO enregistrerImageDemandeur(Integer demandeId, String base64Value, String typeDocument) {
         if (demandeId == null) {
             throw new ValidationException("Demande introuvable", List.of("Identifiant de demande manquant."));
         }
@@ -52,24 +57,33 @@ public class PhotoSignatureService {
         }
 
         byte[] imageBytes = decodeBase64Image(base64Value);
-        if (photo) {
-            demandeur.setPhotoWebcam(imageBytes);
-            demandeur.setPhotoTerminee(Boolean.TRUE);
+
+        // Enregistrer ou mettre à jour le document signature
+        DocumentSignature docSignature = documentSignatureRepository
+                .findByDemandeurIdAndDemandeIdAndTypeDocument(demandeur.getId(), demandeId, typeDocument)
+                .orElse(new DocumentSignature(demandeur, demande, typeDocument, imageBytes));
+
+        docSignature.setContenu(imageBytes);
+        docSignature.setDateModification(LocalDateTime.now());
+        if (typeDocument.equals("PHOTO_WEBCAM")) {
+            docSignature.setTypeMime("image/jpeg");
+            docSignature.setNomFichier("photo_webcam.jpg");
         } else {
-            demandeur.setSignatureSouris(imageBytes);
-            demandeur.setSignatureTerminee(Boolean.TRUE);
+            docSignature.setTypeMime("image/png");
+            docSignature.setNomFichier("signature_souris.png");
         }
 
-        demandeur.setDateModification(LocalDateTime.now());
-        demandeurRepository.save(demandeur);
+        documentSignatureRepository.save(docSignature);
 
         ValidationErrorDTO response = new ValidationErrorDTO(true,
-                photo ? "Photo enregistrée avec succès." : "Signature enregistrée avec succès.");
+                typeDocument.equals("PHOTO_WEBCAM") ? "Photo enregistrée avec succès." : "Signature enregistrée avec succès.");
         response.setDemandeId(demandeId);
 
-        boolean photoTerminee = Boolean.TRUE.equals(demandeur.getPhotoTerminee());
-        boolean signatureTerminee = Boolean.TRUE.equals(demandeur.getSignatureTerminee());
-        if (photoTerminee && signatureTerminee) {
+        // Vérifier si les 2 documents sont présents
+        boolean photoPresente = documentSignatureRepository.existsPhotoWebcam(demandeId);
+        boolean signaturePresente = documentSignatureRepository.existsSignatureSouris(demandeId);
+
+        if (photoPresente && signaturePresente) {
             ValidationErrorDTO transition = demandeStatusService.transitionnerVersPhotoSignatureTerminee(demandeId);
             if (!transition.isSuccess()) {
                 return transition;

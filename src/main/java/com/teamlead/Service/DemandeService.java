@@ -217,8 +217,8 @@ import com.teamlead.Model.Decision;
                     piece.setTypeDocument(typeDocumentRepository.findById(id).orElseThrow(()->new ValidationException("Erreur doc",List.of("Doc inexistant "+id))));
                     piece.setPresent(Boolean.TRUE);
                     piece.setValide(modeUploadTermine);
-                    piece.setScanComplete(modeUploadTermine);
-                    piece.setDateScanComplete(modeUploadTermine ? LocalDateTime.now() : null);
+                    piece.setScanComplete(false);  // ✓ TOUJOURS false à la création, sera marquée true APRÈS les uploads réels
+                    piece.setDateScanComplete(null);
                     piece.setDateDepot(LocalDateTime.now());
                     piece.setDateModification(LocalDateTime.now());
                     pieceAFournirRepository.save(piece);

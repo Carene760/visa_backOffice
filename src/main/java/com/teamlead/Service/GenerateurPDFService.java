@@ -21,6 +21,7 @@ import com.itextpdf.layout.properties.VerticalAlignment;
 import com.teamlead.Model.Demande;
 import com.teamlead.Model.PieceAFournir;
 import com.teamlead.Repository.DemandeRepository;
+import com.teamlead.Repository.DocumentSignatureRepository;
 import com.teamlead.Repository.PieceAFournirRepository;
 import com.teamlead.Model.CarteResident;
 import com.teamlead.Repository.CarteResidentRepository;
@@ -40,6 +41,9 @@ public class GenerateurPDFService {
 
     @Autowired
     private DocumentScanRepository documentScanRepository;
+
+    @Autowired
+    private DocumentSignatureRepository documentSignatureRepository;
 
     @Autowired
     private CarteResidentRepository carteResidentRepository;
@@ -150,30 +154,30 @@ public class GenerateurPDFService {
             document.add(creerSectionEtatCivil(demande));
 
             // Photo & signature
-            if (demande.getDemandeur() != null) {
-                byte[] photo = demande.getDemandeur().getPhotoWebcam();
-                byte[] signature = demande.getDemandeur().getSignatureSouris();
+            var photoOpt = documentSignatureRepository.findPhotoWebcamByDemandeId(idDemande);
+            var signatureOpt = documentSignatureRepository.findSignatureSourisByDemandeId(idDemande);
 
-                if (photo != null || signature != null) {
-                    document.add(creerSectionTitre("PHOTO / SIGNATURE"));
-                    Table t = new Table(UnitValue.createPercentArray(new float[] {1,1})).useAllAvailableWidth();
+            if (photoOpt.isPresent() || signatureOpt.isPresent()) {
+                document.add(creerSectionTitre("PHOTO / SIGNATURE"));
+                Table t = new Table(UnitValue.createPercentArray(new float[] {1,1})).useAllAvailableWidth();
 
-                    if (photo != null) {
-                        Image img = new Image(ImageDataFactory.create(photo)).setAutoScale(true).setMaxWidth(UnitValue.createPercentValue(45));
-                        t.addCell(new Cell().add(new Paragraph("Photo webcam").setBold()).add(img));
-                    } else {
-                        t.addCell(new Cell().add(new Paragraph("Photo webcam").setBold()).add(new Paragraph("(non fournie)")));
-                    }
-
-                    if (signature != null) {
-                        Image sig = new Image(ImageDataFactory.create(signature)).setAutoScale(true).setMaxWidth(UnitValue.createPercentValue(45));
-                        t.addCell(new Cell().add(new Paragraph("Signature souris").setBold()).add(sig));
-                    } else {
-                        t.addCell(new Cell().add(new Paragraph("Signature souris").setBold()).add(new Paragraph("(non fournie)")));
-                    }
-
-                    document.add(t);
+                if (photoOpt.isPresent()) {
+                    byte[] photo = photoOpt.get().getContenu();
+                    Image img = new Image(ImageDataFactory.create(photo)).setAutoScale(true).setMaxWidth(UnitValue.createPercentValue(45));
+                    t.addCell(new Cell().add(new Paragraph("Photo webcam").setBold()).add(img));
+                } else {
+                    t.addCell(new Cell().add(new Paragraph("Photo webcam").setBold()).add(new Paragraph("(non fournie)")));
                 }
+
+                if (signatureOpt.isPresent()) {
+                    byte[] signature = signatureOpt.get().getContenu();
+                    Image sig = new Image(ImageDataFactory.create(signature)).setAutoScale(true).setMaxWidth(UnitValue.createPercentValue(45));
+                    t.addCell(new Cell().add(new Paragraph("Signature souris").setBold()).add(sig));
+                } else {
+                    t.addCell(new Cell().add(new Paragraph("Signature souris").setBold()).add(new Paragraph("(non fournie)")));
+                }
+
+                document.add(t);
             }
 
             // Justificatifs (liste des scans reçus)
@@ -396,16 +400,29 @@ public class GenerateurPDFService {
             document.add(table);
 
             // Ajouter photo/signature du demandeur si présent
-            if (demande != null && demande.getDemandeur() != null) {
-                byte[] photo = demande.getDemandeur().getPhotoWebcam();
-                byte[] signature = demande.getDemandeur().getSignatureSouris();
-                if (photo != null || signature != null) {
+            if (demande != null) {
+                Integer demandeId = demande.getId();
+                var photoOpt = documentSignatureRepository.findPhotoWebcamByDemandeId(demandeId);
+                var signatureOpt = documentSignatureRepository.findSignatureSourisByDemandeId(demandeId);
+                
+                if (photoOpt.isPresent() || signatureOpt.isPresent()) {
                     document.add(creerSectionTitre("PHOTO / SIGNATURE"));
                     Table t = new Table(UnitValue.createPercentArray(new float[]{1,1})).useAllAvailableWidth();
-                    if (photo != null) t.addCell(new Cell().add(new Paragraph("Photo").setBold()).add(new Image(ImageDataFactory.create(photo)).setAutoScale(true)));
-                    else t.addCell(new Cell().add(new Paragraph("Photo").setBold()).add(new Paragraph("(non fournie)")));
-                    if (signature != null) t.addCell(new Cell().add(new Paragraph("Signature").setBold()).add(new Image(ImageDataFactory.create(signature)).setAutoScale(true)));
-                    else t.addCell(new Cell().add(new Paragraph("Signature").setBold()).add(new Paragraph("(non fournie)")));
+                    
+                    if (photoOpt.isPresent()) {
+                        byte[] photo = photoOpt.get().getContenu();
+                        t.addCell(new Cell().add(new Paragraph("Photo").setBold()).add(new Image(ImageDataFactory.create(photo)).setAutoScale(true)));
+                    } else {
+                        t.addCell(new Cell().add(new Paragraph("Photo").setBold()).add(new Paragraph("(non fournie)")));
+                    }
+                    
+                    if (signatureOpt.isPresent()) {
+                        byte[] signature = signatureOpt.get().getContenu();
+                        t.addCell(new Cell().add(new Paragraph("Signature").setBold()).add(new Image(ImageDataFactory.create(signature)).setAutoScale(true)));
+                    } else {
+                        t.addCell(new Cell().add(new Paragraph("Signature").setBold()).add(new Paragraph("(non fournie)")));
+                    }
+                    
                     document.add(t);
                 }
             }
